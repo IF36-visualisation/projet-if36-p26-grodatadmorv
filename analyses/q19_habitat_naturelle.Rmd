@@ -1,0 +1,45 @@
+## 19. L'habitat naturel d'un Pokémon (grotte, forêt, zone urbaine…) correspond-il à son type (e.g.: Plante = forêt), ou y a-t-il une certaine diversité par environnement ? (`pokemon_habitats.csv`, `pokemon_types.csv`, `pokemon_species.csv`)
+
+## Graphique n°1 : Heatmap
+
+
+```{r q19, echo = FALSE, fig.width = 9, fig.height = 5}
+library(plotly)
+
+habitat_names <- read.csv("../data/pokeapi/pokemon_habitat_names.csv") %>%
+  filter(local_language_id == 9) %>%
+  select(habitat_id = pokemon_habitat_id, habitat = name)
+
+habitat_type <- pokeapi %>%
+  left_join(habitat_names, by = "habitat_id") %>%
+  filter(!is.na(habitat), !is.na(type1_name))  %>%
+  select(id, habitat, type = type1_name, generation_id)
+
+df <- habitat_type %>%
+  count(habitat, type)
+
+
+ggplot(df, aes(x = type, y = habitat, fill = n)) +
+  geom_tile(color = "white") +
+  labs(x = "Type primaire", y = "Habitat", fill = "Nb Pokémon") +
+  theme_pokemon +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)
+)
+
+```
+## Graphique n°2 : Stacked Bar Chart
+
+```{r q19, echo = FALSE, fig.width = 9, fig.height = 5}
+df <- habitat_type %>%
+  count(habitat, type) %>%
+  group_by(habitat) %>%
+  mutate(pct = round(n / sum(n) * 100, 1)) %>%
+  ungroup()
+ggplot(df, aes(x = habitat, y = pct, fill = type)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = palette_types) +
+  labs(x = "Habitat", y = "%", fill = "Type")
+```
+
+L'habitat "water's edge" montre la corrélation la plus forte : 79% de ses espèces sont de type "Water", ce qui confirme une correspondance directe habitat/type. À l'opposé, "mountain" accueille 11 types différents avec aucun dépassant 22%, ce qui montre que certains milieux sont au contraire très éclectiques. La réponse est donc nuancée : la corrélation existe pour dans certains millieux plus ou moins marqué (océan, forêt), mais disparaît pour des environnements moins marqué (plaine, urbain)
