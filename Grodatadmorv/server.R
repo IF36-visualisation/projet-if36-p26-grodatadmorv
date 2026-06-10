@@ -232,17 +232,21 @@ function(input, output) {
                 nb_types = n_distinct(type), .groups = "drop")
     
     plus_type  <- stats %>% arrange(desc(part)) %>% slice(1)
-    plus_mixte <- stats %>% arrange(part) %>% slice(1)
+    plus_mixte <- stats %>% arrange(desc(nb_types)) %>% slice(1)
     
     tags$p(style = "color: #888; font-style: italic; padding: 10px;",
-           paste0("Certains habitats sont fortement corrélés à un type — « ",
-                  plus_type$habitat, " » est dominé par le type ", plus_type$top_type,
-                  " (", round(plus_type$part), "% de ses espèces). À l'inverse, « ",
-                  plus_mixte$habitat, " » est le plus diversifié avec ",
-                  plus_mixte$nb_types, " types différents et aucun ne dépassant ",
-                  round(plus_mixte$part), "%. La réponse à la question est donc nuancée : ",
-                  "la corrélation type-habitat existe pour les milieux marqués (eau, forêt), ",
-                  "mais les milieux génériques (prairie, urbain) accueillent une grande variété de types."))
+           paste0(
+             "L'habitat ' ", plus_type$habitat, " ' montre la corrélation la plus forte : ",
+             round(plus_type$part), "% de ses espèces sont de type ", plus_type$top_type,
+             ", ce qui confirme une correspondance directe habitat/type. ",
+             "À l'opposé, ' ", plus_mixte$habitat, " ' accueille ", plus_mixte$nb_types,
+             " types différents avec aucun dépassant ", round(plus_mixte$part), "%, ",
+             "ce qui montre que certains milieux sont au contraire très éclectiques. ",
+             "La réponse est donc nuancée : la corrélation existe pour les milieux ",
+             "physiquement marqués (eau, mer, montagne), mais disparaît pour les ",
+             "environnements génériques comme la forêt ou les prairies."
+           )
+    )
   })
   
   output$bio_gen <- renderPlotly({
