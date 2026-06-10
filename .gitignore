@@ -144,3 +144,6 @@ __pycache__/
 # data files
 data/processed/
 data/pokeapi/sprites/
+
+# vscode
+.vscode/
