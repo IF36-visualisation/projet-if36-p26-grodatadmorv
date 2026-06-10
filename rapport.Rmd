@@ -103,6 +103,12 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 ```{r child_q18, child = 'analyses/q18_stereotypes.Rmd'}
 ```
 
+```{r child_q19, child = 'analyses/q19_habitat_naturelle.Rmd'}
+```
+
+```{r child_q20, child = 'analyses/q20_dimorphism.Rmd'}
+```
+
 \newpage
 
 # Limites

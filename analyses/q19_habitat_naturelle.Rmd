@@ -3,7 +3,7 @@
 ## Graphique n°1 : Heatmap
 
 
-```{r q19, echo = FALSE, fig.width = 9, fig.height = 5}
+```{r habitat, echo = FALSE, fig.width = 9, fig.height = 5}
 library(plotly)
 
 habitat_names <- read.csv("../data/pokeapi/pokemon_habitat_names.csv") %>%
