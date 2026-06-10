@@ -1,0 +1,18 @@
+## Question 17 : Le "taux de capture" est-il strictement anti-corrélé aux statistiques du Pokémon ? Certains Pokémon faibles sont-ils artificiellement insupportables à attraper ? A-t-il baissé en moyenne dans le temps ?
+
+Le taux de capture est un nombre allant de 3 à 255 qui définit la difficulté de capturer un Pokémon donné. Plus il est élevé, plus le Pokémon est facile à capturer. En principe, les Pokémons les plus faibles ont un taux de capture plus bas, alors que les plus puissants en ont un plus élevé. Par exemple, Roucool a un taux de capture de 255, et Mewtwo un taux de capture de 3.
+On peut cependant se demander si ce principe est toujours respecté.
+
+```{r capture}
+pokeapi %>%
+  select(pokemon_name, generation_id, capture_rate, BST) %>%
+  ggplot(aes(capture_rate, BST, colour = factor(generation_id))) + geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    color = "Génération",
+    x     = "Taux de capture",
+    y     = "Total des stats de base"
+  )
+
+```
+On remarque grâce aux courbes de tendances que notre hypothèse est vérifiée. Il n'y a pas de différence notable entre les génrations. On remarque malgré tout quelques outliers, que l'on peut essayer d'analyser.
