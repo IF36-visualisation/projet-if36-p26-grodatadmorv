@@ -1,0 +1,30 @@
+---
+title: "q11_avantages_types"
+output: html_document
+---
+
+## Certains types ont-ils un avantage offensif/défensif intrinsèque dans le tableau des faiblesses/résistances (couverture, immunités) ?
+
+Tout les types ne sont pas crées égaux. Certains ne dispose que de peu de résistance par rapport à leur nombre de faiblesse, tandis que d'autre dispose de nombreuse résistance mais ne sont pas très fort offensivement.
+Quels types sont les plus avantagés sur le plan défensif et offensif ?
+
+### Graphique n°1: ratio de résistance et faiblesse de chaque type: 
+
+```{r}
+type_resistances <- type_efficacy %>% filter(damage_factor==50) %>% select(target_type_id, damage_factor) %>% count(target_type_id) %>%  add_row(target_type_id = 1, n = 0) %>% arrange(target_type_id)
+type_weaknesses <- type_efficacy %>% filter(damage_factor==200) %>% select(target_type_id, damage_factor) %>% count(target_type_id)
+#type_ratio <- round(type_resistances[2]/type_weaknesses[2])
+type_ratio <- type_weaknesses %>% mutate(target_type_id, n = round(type_resistances[2]/type_weaknesses[2], 3)) %>% arrange(target_type_id) %>% left_join(type_names_en %>% rename(type_name = type_name), by = c("target_type_id" = "type_id")) %>% select(type_name, n)
+
+ggplot(type_ratio, aes(x = type_name, y = n$n)) +
+  geom_col(fill = "#735797", width = 0.6) +
+  geom_text(aes(label = n$n), vjust = -0.3, size = 3.5, fontface = "bold") +
+  labs(
+    title    = "Les types et le nombre de doubles types associés",
+    subtitle = "Chaque barre = nombre de types distincts avec lesquels ce type a été combiné",
+    x = "Type", y = "Nombre de doubles types existants"
+  ) +
+  theme_pokemon
+
+```
+
