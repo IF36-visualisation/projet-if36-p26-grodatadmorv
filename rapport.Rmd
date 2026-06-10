@@ -3,16 +3,16 @@ title: "GroDataDmorv — Analyse de l'équilibrage de Pokémon"
 author: "Équipe Grodatadmorv"
 date: "`r format(Sys.Date(), '%d %B %Y')`"
 output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
   pdf_document:
     toc: true
     toc_depth: 3
     fig_width: 9
     fig_height: 6
     number_sections: true
-  html_document:
-    toc: true
-    toc_float: true
-    df_print: paged
 header-includes:
   - \usepackage{geometry}
   - \geometry{top=2cm, left=2cm, bottom=2cm, right=2cm}
@@ -78,6 +78,8 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 \newpage
 
 ## Équilibrage & Game Design
+```{r child_q08, child = 'analyses/q08_stats.Rmd'}
+```
 
 ```{r child_q09, child = 'analyses/q09_types_dominants.Rmd'}
 ```
@@ -95,6 +97,8 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 \newpage
 
 ## Conception du bestiaire
+```{r child_q17, child = 'analyses/q17_capture_rate.Rmd'}
+```
 
 ```{r child_q18, child = 'analyses/q18_stereotypes.Rmd'}
 ```

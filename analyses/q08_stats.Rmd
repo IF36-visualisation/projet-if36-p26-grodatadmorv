@@ -1,0 +1,35 @@
+## Question 8 : La distribution des statistiques est-elle équlibrée au sein d'une même génération ? Et entre les générations ?
+Puisque les Pokémon ont des profils assez différents (un Pokémon défensif aura des statistiques offensives réduites, un Pokémon Spécial aura des statistiques physiques plus faibles....), on peut s'attendre à ce que les statistiques soient en moyenne égales dans une même génération. De plus, les joueurs de Pokémon parlent du "power creep", le fait que les Pokémons des générations plus récentes aient de meilleures statistiques que les plus anciens, ce que l'on devrait pouvoir l'observer
+```{r stats, echo=FALSE}
+
+# Getting Pokémon name and generation corresponding to each id
+pokemon <- read_csv("../data/pokeapi/pokemon_species.csv", show_col_types = FALSE) %>% 
+  select(id, identifier, generation_id) %>% 
+  rename(pokemon_id = id, name = identifier)
+
+#Getting the names corresponding to stat ids
+statlist <- read_csv("../data/pokeapi/stat_names.csv", show_col_types = FALSE) %>% 
+  filter(local_language_id == 5 & stat_id < 7) %>% 
+  select(stat_id, name) %>% rename(stat_name = name)
+
+#Getting the stats data and adding Pokémon names
+poke_stats <- read_csv("../data/pokeapi/pokemon_stats.csv", show_col_types = FALSE) %>% 
+  select(-effort) %>% 
+  merge(pokemon) %>% 
+  relocate(name, .after = pokemon_id)
+#Adding stats name in the dataset
+poke_stats <- poke_stats %>% 
+  left_join(statlist, by = join_by(stat_id)) %>% 
+  relocate(stat_name, .before = base_stat)
+
+#Computing the means for each stat in each generation
+mean_stats <- poke_stats %>% 
+  summarise(.by = c(generation_id, stat_name, stat_id), mean = mean(base_stat))
+
+
+mean_stats %>% arrange(stat_id) %>% 
+  mutate(stat_name=factor(stat_name, levels=c("PV", "Attaque", "Défense", "Attaque Spéciale", "Défense Spéciale", "Vitesse"))) %>%   # A trick to update the order in which the stats are displayed
+  ggplot(aes(stat_name, mean)) + geom_col(aes(fill = stat_name)) + facet_wrap(vars(generation_id)) + scale_x_discrete(labels = NULL, breaks = NULL) + labs(x = NULL)
+
+```
+On remarque que dans la majorité des générations, l'Attaque est plus élevée que les autres statistiques, parfois de beaucoup. Dans la plupart, la défense est deuxième, bien que cela soit moins flagrant. On peut ainsi imaginer qu'il existe plus de Pokémon offensifs sur le physique que d'autres profils. En ce qui concerne le "power creep", il est bel et bien visible: les valeurs augmentent au fil des générations.
