@@ -1,0 +1,49 @@
+## 20. Comment ont évolué les caractéristiques biologiques telles que la taille, le poids ou le dimorphisme sexuel au fil des générations ? (`pokemon.csv`, `pokemon_species.csv`)
+```{r q20_prep, echo = FALSE}
+gender_diff <- read.csv("../data/pokeapi/pokemon_species.csv") %>%
+  select(id, has_gender_differences)
+
+bio_gen <- pokeapi %>%
+  left_join(gender_diff, by = "id") %>%
+  filter(!is.na(generation_id))
+
+poids <- bio_gen %>%
+  mutate(
+    valeur_poids = weight / 10,
+    generation = factor(generation_id)
+  )
+
+taille <- bio_gen %>%
+  mutate(
+    valeur_taille = height / 10,
+    generation = factor(generation_id)
+  )
+```
+
+```{r q20_dimorphisme, echo = FALSE, fig.width = 9, fig.height = 5}
+ggplot(poids, aes(x = generation, y = valeur_poids)) +
+  geom_boxplot(fill = "#7b2d8b", alpha = 0.7) +
+  labs(x = "Génération", y = "Poids (kg)") +
+  theme_pokemon
+```
+La moyenne a augmenté, passant de 46 kg (gén. 1) à 87.3 kg (gén. 9). La médiane (35 kg en dernière génération) reste bien inférieure à la moyenne, signe que quelques espèces très lourdes (légendaires notamment) tirent les valeurs vers le haut.
+
+```{r q20_dimorphisme, echo = FALSE, fig.width = 9, fig.height = 5}
+ggplot(taille, aes(x = generation, y = valeur_taille)) +
+  geom_boxplot(fill = "#7b2d8b", alpha = 0.7) +
+  labs(x = "Génération", y = "taille") +
+  theme_pokemon
+```
+La moyenne a augmenté, passant de 1.2 m (gén. 1) à 1.4 m (gén. 9). La médiane (1.2 m en dernière génération) reste bien inférieure à la moyenne, signe que quelques espèces très grandes (légendaires notamment) tirent les valeurs vers le haut.
+
+```{r q20_dimorphisme, echo = FALSE, fig.width = 9, fig.height = 5}
+df <- bio_gen %>%
+  group_by(generation_id) %>%
+  summarise(pct_dimorphe = mean(has_gender_differences == 1) * 100,
+            .groups = "drop")
+
+ggplot(df, aes(x = factor(generation_id), y = pct_dimorphe)) +
+  geom_col(fill = "#7b2d8b") +
+  labs(x = "Génération", y = "% Pokémon à dimorphisme visible")
+```
+Le dimorphisme sexuel visible (apparence différente entre mâle et femelle) concerne en moyenne 10% des espèces. Il culmine en génération 4 (29%), qui correspond aux jeux Diamant/Perle où cette mécanique a été fortement développée. Ce critère ne capture que les différences d'apparence, pas les différences de répartition mâle/femelle au sein des espèces.
