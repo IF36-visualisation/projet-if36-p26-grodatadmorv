@@ -1,0 +1,132 @@
+## Question 9 : Certains types sont-ils sur ou sous-représentés parmi les Pokémon dominants ?
+
+Pour répondre à cette question, on compare la distribution des types dans le Pokédex de première génération à leur présence dans le métagame Gen 1 OU de Smogon. Les Pokémon à double type comptent une fois pour chacun de leurs types : Exeggutor contribue donc à la fois au type Grass et au type Psychic.
+
+Les données PokeAPI décrivent les types actuels. On reconstruit donc localement les types de génération 1, afin d'éviter de compter des types introduits plus tard comme Steel ou Fairy.
+
+```{r q09_prepare, echo = FALSE}
+q09_species_gen1 <- pokemon_species %>%
+  filter(generation_id == 1) %>%
+  select(pokemon_id = id, species_name = identifier)
+
+q09_past_types_gen1 <- pokemon_types_past %>%
+  filter(generation_id >= 1) %>%
+  group_by(pokemon_id, slot) %>%
+  slice_min(generation_id, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(pokemon_id, slot, past_type_id = type_id)
+
+q09_gen1_types <- pokemon_types_raw %>%
+  inner_join(q09_species_gen1, by = "pokemon_id") %>%
+  left_join(q09_past_types_gen1, by = c("pokemon_id", "slot")) %>%
+  mutate(type_id = coalesce(past_type_id, type_id)) %>%
+  left_join(types_raw, by = "type_id") %>%
+  filter(type_generation <= 1) %>%
+  left_join(type_names_en, by = "type_id") %>%
+  distinct(pokemon_id, species_name, type_id, type_name)
+
+q09_usage_types <- smogon_usage %>%
+  mutate(species_name = str_to_lower(pokemon)) %>%
+  inner_join(q09_gen1_types, by = "species_name")
+
+q09_baseline <- q09_gen1_types %>%
+  count(type_name, name = "n_gen1") %>%
+  mutate(pool_share = n_gen1 / sum(n_gen1))
+
+q09_dominant_types <- smogon_usage %>%
+  slice_max(usage_pct_mean, n = 15, with_ties = FALSE) %>%
+  mutate(species_name = str_to_lower(pokemon)) %>%
+  inner_join(q09_gen1_types, by = "species_name") %>%
+  count(type_name, name = "n_top15") %>%
+  mutate(dominant_share = n_top15 / sum(n_top15))
+
+q09_weighted_types <- q09_usage_types %>%
+  group_by(type_name) %>%
+  summarise(
+    weighted_raw = sum(raw_count_total, na.rm = TRUE),
+    avg_usage = mean(usage_pct_mean, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(weighted_share = weighted_raw / sum(weighted_raw))
+
+q09_type_summary <- q09_baseline %>%
+  full_join(q09_dominant_types, by = "type_name") %>%
+  full_join(q09_weighted_types, by = "type_name") %>%
+  mutate(
+    n_top15 = replace_na(n_top15, 0L),
+    dominant_share = replace_na(dominant_share, 0),
+    weighted_share = replace_na(weighted_share, 0),
+    dominant_ratio = dominant_share / pool_share,
+    weighted_ratio = weighted_share / pool_share,
+    diff_points = (weighted_share - pool_share) * 100,
+    representation = if_else(weighted_ratio >= 1, "Sur-représenté", "Sous-représenté")
+  )
+```
+
+### Graphique n°1 : Types présents dans le top 15
+
+```{r q09_top15, echo = FALSE, fig.width = 10, fig.height = 5}
+q09_top15_plot <- q09_type_summary %>%
+  select(type_name, pool_share, dominant_share, dominant_ratio) %>%
+  pivot_longer(
+    cols = c(pool_share, dominant_share),
+    names_to = "population",
+    values_to = "share"
+  ) %>%
+  mutate(
+    population = recode(
+      population,
+      pool_share = "Pokédex Gen 1",
+      dominant_share = "Top 15 Smogon"
+    ),
+    type_name = fct_reorder(type_name, dominant_ratio, .desc = TRUE)
+  )
+
+ggplot(q09_top15_plot, aes(x = type_name, y = share, fill = population)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65) +
+  scale_y_continuous(labels = label_percent(accuracy = 1)) +
+  scale_fill_manual(values = c("Pokédex Gen 1" = "#A8A77A", "Top 15 Smogon" = "#E8334A")) +
+  labs(
+    title = "Types du top 15 comparés à leur présence dans le Pokédex",
+    subtitle = "Un type au-dessus de sa barre Pokédex est sur-représenté parmi les Pokémon dominants",
+    x = "Type", y = "Part des occurrences de types", fill = NULL
+  ) +
+  theme_pokemon
+```
+
+Dans le top 15, les types Ice, Psychic et Ghost ressortent très fortement : Ice représente environ 12 % des occurrences de types du top 15 contre seulement 2,3 % dans le Pokédex Gen 1, et Psychic monte à 20 % contre 6,6 %. À l'inverse, Bug, Fighting et Fire sont absents du top 15, alors qu'ils existent bien dans le bestiaire.
+
+### Graphique n°2 : Ratio de représentation pondéré par l'usage
+
+```{r q09_weighted, echo = FALSE, fig.width = 10, fig.height = 5}
+q09_weighted_plot <- q09_type_summary %>%
+  mutate(type_name = fct_reorder(type_name, weighted_ratio))
+
+ggplot(q09_weighted_plot, aes(x = type_name, y = weighted_ratio, colour = representation)) +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey45") +
+  geom_segment(aes(xend = type_name, y = 1, yend = weighted_ratio), linewidth = 0.8) +
+  geom_point(size = 3.2) +
+  coord_flip() +
+  scale_colour_manual(values = c("Sur-représenté" = "#6390F0", "Sous-représenté" = "#E8334A")) +
+  labs(
+    title = "Sur/sous-représentation des types dans l'usage Smogon",
+    subtitle = "Ratio > 1 : le type pèse plus dans l'usage que dans le Pokédex Gen 1",
+    x = "Type", y = "Ratio usage / Pokédex", colour = NULL
+  ) +
+  theme_pokemon +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+Le classement pondéré par l'usage nuance légèrement le top 15, mais confirme les mêmes familles de types. Psy est le type le plus avantagé : il pèse presque 3 fois plus dans l'usage Smogon que dans le Pokédex de génération 1. Spectre, Glace et Normal sont aussi très au-dessus de leur poids théorique. Normal est notamment porté par Tauros, Leveinard et Ronflex, trois piliers du métagame.
+
+### Synthèse
+
+Les meilleurs types du métagame étudié semblent être Psy, Glace, Spectre et Normal. Psy bénéficie d'une position centrale dans la première génération avec Alakazam, Lippoutou et Flagadoss.
+
+Le type Glace quant à lui profite du collectif : avec quelques Pokémon très efficaces comme Lippoutou (Psy/Glace), Crustabri (Eau/Glace) et Lokhlass (Eau/Glace). C'est un type défensivement assez faible, mais c'est un bon coverage offensif avec des attaques puissantes pour complémenter un autre type éliminer la menace Dracolosse sur qui les dégats Glace sont multipliés par 4.
+
+Normal n'est pas intrinsèquement rare, mais ses meilleurs représentants concentrent énormément d'usage. 
+
+Spectre n'est représenté que par la famille d'Ectoplasma, très populaire grâce à sa vitesse et son spécial, mais dont le type spectre (physique) est stérilisé par son attaque abyssale. L'immunité aux types Normal et Combat est cependant très appréciée car elle permet de placer Ectoplasma en switch-in contre des Pokémon très courants comme Tauros ou Ronflex.
+
+Les pires types sont Insecte, Combat et Feu, suivis par Poison. Leur faible présence dans les Pokémon dominants indique que l'équilibrage de la première génération ne donne pas la même valeur compétitive à tous les types : le type seul ne suffit pas à expliquer l'usage, mais il structure clairement les chances d'apparition au sommet du métagame.
