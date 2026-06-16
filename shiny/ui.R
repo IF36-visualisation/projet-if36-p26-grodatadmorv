@@ -1,23 +1,8 @@
 library(shiny)
 library(shinydashboard)
 library(plotly)
-library(chorddiag)
 
-find_project_root <- function() {
-  candidates <- c(
-    normalizePath(getwd(), mustWork = TRUE),
-    normalizePath(file.path(getwd(), ".."), mustWork = FALSE)
-  )
-
-  root <- candidates[file.exists(file.path(candidates, "data", "pokeapi", "pokemon.csv"))][1]
-  if (is.na(root)) {
-    stop("Impossible de trouver la racine du projet depuis ", getwd(), call. = FALSE)
-  }
-
-  root
-}
-
-addResourcePath("img", file.path(find_project_root(), "img"))
+addResourcePath("img", "../img/")
 
 title <- tags$a(href='#',
                 tags$img(
@@ -36,8 +21,7 @@ dashboardPage(
       id = 'tabs',
       menuItem("Stats", tabName = "stats", icon = icon("dashboard")),
       menuItem("Rencontres", tabName = "rencontres", icon = icon("dashboard")),
-      menuItem("Bestiaires", tabName = "bestiaires", icon = icon("dashboard")),
-      menuItem("Doubles types", tabName = "doubles_types", icon = icon("project-diagram"))
+      menuItem("Bestiaires", tabName = "bestiaires", icon = icon("dashboard"))
     ),
     # Sidebar
     conditionalPanel(
@@ -69,18 +53,6 @@ dashboardPage(
       radioButtons("bio_measure", "Mesure",
                    choices = c("Poids" = "weight", "Taille" = "height"),
                    selected = "weight"),
-    ),
-    conditionalPanel(
-      condition = "input.tabs == 'doubles_types'",
-      radioButtons(
-        inputId = "generation",
-        label = "Données à afficher :",
-        choices = c(
-          "Toutes les générations" = "all",
-          "Gen 1 (typings d'origine)" = "gen1"
-        ),
-        selected = "all"
-      )
     )
   ),
   dashboardBody(
@@ -189,34 +161,8 @@ dashboardPage(
               uiOutput("dimorphism_gen_txt")
           ),
         )
-      ),
-      tabItem(
-        tabName = "doubles_types",
-        h2("Associations de doubles types Pokémon"),
-        fluidRow(
-          box(width = 12, status = "info", solidHeader = FALSE,
-              tags$div(
-                style = "color: #555;",
-                tags$h4(icon("info-circle"), "A propos de ces données"),
-                tags$ul(
-                  tags$li(
-                    "Le diagramme montre les associations entre types Pokémon."
-                  ),
-                  tags$li(
-                    "L'épaisseur de chaque ruban est proportionnelle au nombre d'espèces partageant ce double type."
-                  ),
-                  tags$li(
-                    "Le filtre permet de comparer toutes les générations avec les typings d'origine de la génération 1."
-                  )
-                )
-              )
-          )
-        ),
-        fluidRow(
-          box(title = "Diagramme des associations de types", width = 12,
-              chorddiagOutput("chordPlot", width = "100%", height = "750px"))
-        )
       )
     )
   )
 )
+
