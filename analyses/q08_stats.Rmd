@@ -33,3 +33,57 @@ mean_stats %>% arrange(stat_id) %>%
 
 ```
 On remarque que dans la majorité des générations, l'Attaque est plus élevée que les autres statistiques, parfois de beaucoup. Dans la plupart, la défense est deuxième, bien que cela soit moins flagrant. On peut ainsi imaginer qu'il existe plus de Pokémon offensifs sur le physique que d'autres profils. En ce qui concerne le "power creep", il est bel et bien visible: les valeurs augmentent au fil des générations.
+
+## Certains Pokémon ont-ils un profil plus spécialisé (ex: haute attaque faible attaque spéciale), certains sont-ils plus homogènes ?
+
+Pour cette analyse, on peut tenter de déterminer la moyenne de chaque statistique selon la statistique la plus élevée de chaque Pokémon.
+
+```{r}
+
+stats <- pokeapi %>%
+  select(pokemon_name, HP, Attack, Defense, Sp.Atk, Sp.Def, Speed, BST)
+
+# On identifie les stats dominantes de chaque Pokémon
+dominant <- stats %>%
+  pivot_longer(cols = c(HP, Attack, Defense, Sp.Atk, Sp.Def, Speed),
+               names_to = "stat",
+               values_to = "value") %>%
+  group_by(pokemon_name) %>%
+  filter(value == max(value)) %>%              # Toutes les stats au max
+  select(pokemon_name, dominant_stat = stat)
+
+# Format long complet pour les moyennes
+stats_long <- stats %>%
+  pivot_longer(cols = c(HP, Attack, Defense, Sp.Atk, Sp.Def, Speed),
+               names_to = "stat",
+               values_to = "value")
+
+# Jointure et calcul
+stats_by_dominant <- dominant %>%
+  left_join(stats_long, by = "pokemon_name", relationship = "many-to-many") %>%
+  filter(stat != dominant_stat) %>%
+  group_by(dominant_stat, stat) %>%
+  summarise(mean_value = round(mean(value), 1), .groups = "drop") %>%
+  pivot_wider(names_from = stat, values_from = mean_value)
+
+
+result_long <- stats_by_dominant %>%
+  pivot_longer(cols = -dominant_stat,
+               names_to = "stat",
+               values_to = "mean_value")
+
+ggplot(result_long, aes(y = dominant_stat, x = stat, fill = mean_value)) +
+   geom_tile(colour = "white", linewidth = 0.5) +
+  geom_text(aes(label = n), size = 3, colour = "white", fontface = "bold") +
+  scale_fill_distiller(direction = 1, name = "Moyenne")  +
+  labs(
+    y = "Stat dominante",
+    x = "Autre stat",
+  ) +
+  theme_pokemon
+
+```
+
+
+
+

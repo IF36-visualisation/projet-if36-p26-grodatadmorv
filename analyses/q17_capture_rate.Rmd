@@ -4,9 +4,11 @@ Le taux de capture est un nombre allant de 3 à 255 qui définit la difficulté 
 On peut cependant se demander si ce principe est toujours respecté.
 
 ```{r capture}
-pokeapi %>%
-  select(pokemon_name, generation_id, capture_rate, BST) %>%
-  ggplot(aes(capture_rate, BST, colour = factor(generation_id))) + geom_point(alpha = 0.5) +
+capture_table <- pokeapi %>%
+  select(pokemon_name, generation_id, capture_rate, BST)
+
+ggplot(capture_table, aes(capture_rate, BST, colour = factor(generation_id))) +
+  geom_point(alpha = 0.5) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(
     color = "Génération",
@@ -15,4 +17,48 @@ pokeapi %>%
   )
 
 ```
-On remarque grâce aux courbes de tendances que notre hypothèse est vérifiée. Il n'y a pas de différence notable entre les génrations. On remarque malgré tout quelques outliers, que l'on peut essayer d'analyser.
+On remarque grâce aux courbes de tendances que notre hypothèse est vérifiée. Il n'y a pas de différence notable entre les générations. On remarque malgré tout quelques outliers, que l'on peut essayer d'analyser.
+```{r capture_outliers}
+outliers <- capture_table %>%
+  filter( 
+    (BST > 500 & capture_rate > 125) | (BST < 400 & capture_rate < 30)
+     ) %>%
+  arrange(capture_rate)
+outliers
+
+```
+
+En analysant la liste de ces outliers, on peut identifier plusieurs groupes :
+**Les futures menaces :**
+
+* Wushours (Kubfu)
+* Meltan
+* Terhal (Beldum)
+
+Ces pokémons ont un taux de capture très faible malgré leurs statistiques assez mauvaises. Cela s'explique très simplement : leurs évolutions sont bien plus puissantes. Wushours et Meltan évoluent respectivement en Shifours (550 BST) et Melmetal (600 BST), deux Pokémon légendaires et donc extrêmement rares. 
+Terhal a pour évolution finale Métalosse (600 BST), qui appartient à une catégorie de Pokémons communément nommés "pseudo-légendaires", des Pokémons communs mais très puissant. Cependant, il est le seul de cette catégorie avec un taux de capture aussi bas, ce qui le rend tristement notoire auprès des joueurs.
+
+**Les obligatoires**
+
+* Necrozma
+* Éthernatos
+
+Ces Pokémons sont des légendaires, mais leur taux de capture est  maximal. La raison est simplement que ce sont des Pokémons que l'histoire de leur jeu force le joueur à capturer.
+
+**Les évolutions**
+
+* Cerbyllin (Wyrdeer)
+* Paragruel (Basculegion)
+* Farfurex (Sneasler)
+* Qwilpik (Overqwil)
+
+Ces Pokémons ont un taux de capture plutôt élevé par rapport à leur statistiques. La raison est un peu plus étrange que les précédentes, mais la même pour tous : il ne sont en réalité pas capturables. En effet, ces Pokémons ne sont pas disponibles à l'état sauvage, et peuvent uniquement être obtenus après évolution de leur premier stage. Ainsi, ils n'ont pas de taux de capture propre, mais héritent de celui de leur sous-évolution.
+
+**Les inexplicables**
+
+* Babimanta (Mantyke)
+* Caratroc (Shuckle)
+* Motorizard (Cyclizar)
+
+Ces Pokémons n'ont pas vraiment de traits particuliers qui pourraient expliquer leur présence dans cette liste. ils représentent probablement des anomalies statistiques.
+
