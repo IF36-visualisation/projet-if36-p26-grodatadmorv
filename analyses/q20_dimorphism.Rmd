@@ -20,7 +20,7 @@ taille <- bio_gen %>%
   )
 ```
 
-```{r q20_dimorphisme, echo = FALSE, fig.width = 9, fig.height = 5}
+```{r q20_dimorphisme_1, echo = FALSE, fig.width = 9, fig.height = 5}
 ggplot(poids, aes(x = generation, y = valeur_poids)) +
   geom_boxplot(fill = "#7b2d8b", alpha = 0.7) +
   labs(x = "Génération", y = "Poids (kg)") +
@@ -28,7 +28,7 @@ ggplot(poids, aes(x = generation, y = valeur_poids)) +
 ```
 La moyenne a augmenté, passant de 46 kg (gén. 1) à 87.3 kg (gén. 9). La médiane (35 kg en dernière génération) reste bien inférieure à la moyenne, signe que quelques espèces très lourdes (légendaires notamment) tirent les valeurs vers le haut.
 
-```{r q20_dimorphisme, echo = FALSE, fig.width = 9, fig.height = 5}
+```{r q20_dimorphisme_2, echo = FALSE, fig.width = 9, fig.height = 5}
 ggplot(taille, aes(x = generation, y = valeur_taille)) +
   geom_boxplot(fill = "#7b2d8b", alpha = 0.7) +
   labs(x = "Génération", y = "taille") +
@@ -36,7 +36,7 @@ ggplot(taille, aes(x = generation, y = valeur_taille)) +
 ```
 La moyenne a augmenté, passant de 1.2 m (gén. 1) à 1.4 m (gén. 9). La médiane (1.2 m en dernière génération) reste bien inférieure à la moyenne, signe que quelques espèces très grandes (légendaires notamment) tirent les valeurs vers le haut.
 
-```{r q20_dimorphisme, echo = FALSE, fig.width = 9, fig.height = 5}
+```{r q20_dimorphisme_3, echo = FALSE, fig.width = 9, fig.height = 5}
 df <- bio_gen %>%
   group_by(generation_id) %>%
   summarise(pct_dimorphe = mean(has_gender_differences == 1) * 100,
