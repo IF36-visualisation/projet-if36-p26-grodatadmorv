@@ -1,0 +1,99 @@
+## Question 5 : Observe-t-on des combinaisons récurrentes (teammates) qui signalent des synergies fortes ?
+
+En croisant chaque Pokémon avec ses coéquipiers les plus fréquents, on peut calculer un **indice d'association** : de combien de points de pourcentage l'usage d'un coéquipier est plus élevé dans les équipes contenant le Pokémon de référence, comparé à sa moyenne générale. Un indice fortement positif
+signale une synergie récurrente ; un indice négatif signale au contraire des Pokémon que l'on évite d'associer.
+
+```{r q05_setup}
+library(stringr)
+library(tidygraph)
+library(ggraph)
+
+teammates_pairs <- smogon_teammates %>%
+  filter(pokemon != teammate) %>%
+  mutate(p1 = pmin(pokemon, teammate),
+         p2 = pmax(pokemon, teammate)) %>%
+  distinct(p1, p2, .keep_all = TRUE) %>%
+  select(p1, p2, correlation_mean)
+```
+
+### Graphique n°1 : Top 15 des synergies les plus fortes
+
+```{r q05_top15, fig.width = 9, fig.height = 5}
+top15_synergies <- teammates_pairs %>%
+  slice_max(correlation_mean, n = 15, with_ties = FALSE) %>%
+  mutate(paire = paste0(str_to_title(p1), " + ", str_to_title(p2)))
+
+ggplot(top15_synergies, aes(x = reorder(paire, correlation_mean), y = correlation_mean)) +
+  geom_col(fill = "#6390F0", width = 0.7) +
+  geom_text(aes(label = label_number(accuracy = 0.1)(correlation_mean)),
+            hjust = -0.1, size = 3.2, fontface = "bold") +
+  coord_flip() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(
+    title    = "Top 15 des synergies de coéquipiers les plus fortes",
+    subtitle = "Indice d'association Smogon (points de % d'usage en plus quand associés)",
+    x = NULL, y = "Indice d'association moyen"
+  ) +
+  theme_pokemon
+```
+
+La synergie la plus marquée est Chansey et Tauros avec un indice de 12.942. Au total, 1011 paires dépassent un indice de 10, ce qui signale des associations nettement non aléatoires entre certains Pokémon du métagame.
+
+### Graphique n°1 : Top 15 des synergies les plus fortes
+
+```{r q05_network_stats}
+top_n_arc <- 40
+
+edges_arc <- teammates_pairs %>%
+  slice_max(correlation_mean, n = top_n_arc, with_ties = FALSE) %>%
+  mutate(p1 = str_to_title(p1), p2 = str_to_title(p2))
+
+noeuds_ordre <- c(edges_arc$p1, edges_arc$p2) %>%
+  table() %>%
+  sort(decreasing = TRUE) %>%
+  names()
+
+positions <- tibble(nom = noeuds_ordre, x = seq_along(noeuds_ordre))
+
+edges_arc <- edges_arc %>%
+  left_join(positions, by = c("p1" = "nom")) %>%
+  rename(x1 = x) %>%
+  left_join(positions, by = c("p2" = "nom")) %>%
+  rename(x2 = x)
+
+construire_arc <- function(x1, x2, y_base = 0, n_points = 50, id) {
+  centre <- (x1 + x2) / 2
+  rayon  <- abs(x2 - x1) / 2
+  theta  <- seq(0, pi, length.out = n_points)
+  tibble(
+    x  = centre + rayon * cos(theta),
+    y  = y_base + rayon * sin(theta),
+    id = id
+  )
+}
+
+arcs_points <- purrr::pmap_dfr(
+  list(edges_arc$x1, edges_arc$x2, seq_len(nrow(edges_arc))),
+  function(x1, x2, i) construire_arc(x1, x2, id = i) %>%
+    mutate(weight = edges_arc$correlation_mean[i])
+)
+
+ggplot() +
+  geom_path(data = arcs_points, aes(x = x, y = y, group = id, linewidth = weight),
+            colour = "#6390F0", alpha = 0.6, lineend = "round") +
+  geom_point(data = positions, aes(x = x, y = 0), size = 3, colour = "#7b2d8b") +
+  geom_text(data = positions, aes(x = x, y = -0.4, label = nom),
+            angle = 45, hjust = 1, size = 3, fontface = "bold") +
+  scale_linewidth(range = c(0.3, 2.2), name = "Indice\nd'association") +
+  coord_cartesian(clip = "off") +
+  labs(
+    title    = paste0("Diagramme en arc des ", top_n_arc, " synergies les plus fortes"),
+    subtitle = "Chaque arc relie deux Pokémon associés ; plus l'arc est épais, plus l'association est forte"
+  ) +
+  theme_pokemon +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        axis.ticks = element_blank(), panel.grid = element_blank(),
+        plot.margin = margin(t = 10, r = 10, b = 80, l = 10))
+```
+Le diagramme en arc fait apparaître 13 Pokémon impliqués dans au moins une des 40 synergies les plus fortes du métagame. La structure est nettement asymétrique : un noyau de quelques espèces (Tauros, Snorlax, Chansey, Exeggutor) concentre la quasi-totalité des arcs les plus épais, tandis que les Pokémon situés à droite du diagramme (Cloyster, Jolteon, Slowbro) n'apparaissent qu'une seule fois, dans une association ponctuelle plutôt qu'au sein d'un cœur d'équipe récurrent. La synergie la plus marquée semble être Tauros + Snorlax, ce qui confirme, sous une forme différente, le même constat de centralisation déjà observé dans le Top 15 : un petit nombre de duos structurent l'essentiel des compositions d'équipe du métagame.
+
