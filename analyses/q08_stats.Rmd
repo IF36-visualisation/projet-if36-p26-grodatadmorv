@@ -74,8 +74,9 @@ result_long <- stats_by_dominant %>%
 
 ggplot(result_long, aes(y = dominant_stat, x = stat, fill = mean_value)) +
    geom_tile(colour = "white", linewidth = 0.5) +
-  geom_text(aes(label = n), size = 3, colour = "white", fontface = "bold") +
+  geom_text(aes(label = round(mean_value, 1)), size = 3, colour = "white", fontface = "bold") +
   scale_fill_distiller(direction = 1, name = "Moyenne")  +
+  scale_y_discrete(limits = rev) +
   labs(
     y = "Stat dominante",
     x = "Autre stat",
