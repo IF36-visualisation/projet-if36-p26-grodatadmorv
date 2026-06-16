@@ -1,0 +1,53 @@
+## Question 3 : Quel est la génération la plus représentée parmis les pokemon les plus joués de chaque génération ?
+
+```{r gen_usage}
+# Dictionnaire de lookup pour la jointure
+pokeapi_lookup <- pokeapi %>% select(species_name, generation_id)
+
+# Jointure smogon avec pokeapi pour récupérer la génération
+corrections <- c(
+  "kommo-o-totem"   = "kommo-o",
+  "mr. mime-galar"  = "mr-mime",
+  "farfetch'd-galar" = "farfetchd"
+)
+
+smogon_gen_distrib <- map(1:9, ~ {
+  smogon_usage_by_gen[[paste0("g", .x)]] %>%
+    mutate(
+      pokemon_corrected = recode(pokemon, !!!corrections),
+      species_name_clean = str_remove(pokemon_corrected, "-.*$")
+    ) %>%
+    left_join(pokeapi_lookup, by = c("pokemon_corrected" = "species_name")) %>%
+    left_join(pokeapi_lookup, by = c("species_name_clean" = "species_name"),
+              suffix = c("", "_trunc")) %>%
+    mutate(generation_id = coalesce(generation_id, generation_id_trunc)) %>%
+    select(-generation_id_trunc, -species_name_clean, -pokemon_corrected) %>%
+    mutate(meta_gen = .x)
+}) %>%
+  bind_rows()
+
+smogon_gen_distrib_usage <- smogon_gen_distrib %>%
+  group_by(meta_gen, generation_id) %>%
+  summarise(usage_total = sum(usage_pct_mean, na.rm = TRUE), .groups = "drop")
+
+# Visualisation
+ggplot(smogon_gen_distrib_usage, aes(x = factor(meta_gen), y = usage_total, fill = factor(generation_id))) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_viridis_d(option = "turbo", name = "Génération\ndu Pokémon") +
+  labs(
+    x = "Génération du méta",
+    y = "Répartition de l'usage",
+  ) +
+  theme_pokemon
+
+# smogon_gen_distrib %>%
+#   filter(is.na(generation_id)) %>%
+#   distinct(pokemon)
+# 
+# pokeapi %>% 
+#   filter(str_detect(species_name, "mime|farfetch")) %>% 
+#   select(species_name, generation_id)
+
+```
+

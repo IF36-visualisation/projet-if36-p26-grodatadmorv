@@ -132,6 +132,12 @@ pokeapi_gen1 <- pokeapi %>%
 
 # --- Usage par mois ---
 smogon_usage_monthly <- read_parquet(paste0(SMOGON_PATH, "gen1ou-smogon_usage.parquet"))
+for (g in 1:9) {
+  assign(
+    paste0("smogon_usage_monthly_", g, "g"),
+    read_parquet(paste0(SMOGON_PATH, "gen", g, "ou-smogon_usage.parquet"))
+  )
+}
 
 # --- Usage agrégé (moyenne sur l'ensemble des mois) ---
 smogon_usage <- smogon_usage_monthly %>%
@@ -143,6 +149,18 @@ smogon_usage <- smogon_usage_monthly %>%
     .groups = "drop"
   ) %>%
   arrange(desc(usage_pct_mean))
+
+smogon_usage_by_gen <- map(1:9, ~ get(paste0("smogon_usage_monthly_", .x, "g")) %>%
+  group_by(pokemon) %>%
+  summarise(
+    usage_pct_mean  = mean(usage_pct, na.rm = TRUE),
+    raw_count_total = sum(raw_count, na.rm = TRUE),
+    n_months        = n(),
+    .groups = "drop"
+    ) %>%
+    arrange(desc(usage_pct_mean))
+  ) %>%
+  set_names(paste0("g", 1:9))
 
 # --- Moves par mois ---
 smogon_moves_monthly <- read_parquet(paste0(SMOGON_PATH, "gen1ou-smogon_moves.parquet"))

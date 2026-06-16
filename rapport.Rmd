@@ -76,6 +76,8 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 ```
 
 \newpage
+```{r child_q03, child = 'analyses/q03_gen_repres.Rmd'}
+```
 
 ## Équilibrage & Game Design
 ```{r child_q08, child = 'analyses/q08_stats.Rmd'}
@@ -87,6 +89,9 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 \newpage
 
 ```{r child_q10, child = 'analyses/q10_doubles_types.Rmd'}
+```
+\newpage
+```{r child_q11, child = 'analyses/q11_avantages_types.Rmd'}
 ```
 
 \newpage
