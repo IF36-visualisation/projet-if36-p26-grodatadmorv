@@ -16,7 +16,7 @@ ggplot(top15, aes(x = reorder(pokemon, raw_count_total), y = raw_count_total)) +
   scale_y_continuous(labels = label_number(big.mark = " "),
                      expand = expansion(mult = c(0, 0.15))) +
   labs(
-    title    = "Top 15 des Pokémon les plus utilisés (Gen 1 OU)",
+    title    = "Top 15 des Pokémon les plus utilisés",
     subtitle = "Nombre total d'utilisations agrégé sur l'ensemble des mois",
     x = NULL, y = "Nombre total d'utilisations"
   ) +
@@ -53,27 +53,15 @@ Parmi les 15 Pokémon les moins joués, on retrouve presqu'exclusivement des pre
 ```{r q01_distribution, echo = FALSE, fig.width = 10, fig.height = 5}
 p_hist <- ggplot(smogon_usage, aes(x = raw_count_total)) +
   geom_histogram(bins = 40, fill = "#6390F0", colour = "white", alpha = 0.85) +
-  scale_x_continuous(labels = label_number(big.mark = " ")) +
+  scale_x_log10(labels = label_number(big.mark = " ")) +
   labs(
     title = "Distribution du nombre total d'utilisations",
-    subtitle = "La majorité des Pokémon sont très peu joués",
-    x = "Nombre total d'utilisations", y = "Nombre de Pokémon"
+    subtitle = "La majorité des Pokémon sont très peu joués (échelle log)",
+    x = "Nombre total d'utilisations (log)", y = "Nombre de Pokémon"
   ) +
   theme_pokemon
 
-p_box <- ggplot(smogon_usage, aes(y = raw_count_total)) +
-  geom_boxplot(fill = "#6390F0", alpha = 0.7, width = 0.4) +
-  scale_y_continuous(labels = label_number(big.mark = " ")) +
-  labs(
-    title = "Boxplot de l'utilisation",
-    subtitle = "Les valeurs extrêmes confirment la centralisation",
-    y = "Nombre total d'utilisations"
-  ) +
-  theme_pokemon +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
-
-library(patchwork)
-p_hist + p_box + plot_layout(widths = c(2, 1))
+p_hist
 ```
 
 Sur ces deux graphiques, on voit clairement que l'immense majorité des Pokémon ne sont presque pas utilisés, et qu'une minorité (~10 Pokémon) est jouée presque tout le temps. La distribution est extrêmement asymétrique (right-skewed), ce qui est typique des métagames compétitifs : quelques Pokémon dominent, tandis que la plupart sont relégués à un usage anecdotique.
