@@ -1,0 +1,226 @@
+## Question 16 : Comment évolue la difficulté des Pokémon sauvages au fil du scénario ?
+
+Les données PokeAPI permettent de traiter proprement les Pokémon sauvages, mais pas les dresseurs : faute de CSV homogène sur les équipes adverses, on les exclut de cette analyse.
+
+L'ordre des routes est construit manuellement à partir de notre connaissance des jeux. PokeAPI ne fournit pas un vrai ordre de scénario, et certaines zones sont revisitées à plusieurs moments. Quand la donnée le permet, on sépare donc les sous-zones (`area_identifier`), par exemple les deux parties de la route 211 à Sinnoh. 
+
+On garde uniquement les rencontres standards en marchant (`walk`) afin d'éviter de mélanger progression normale, surf, pêche et rencontres spéciales. Cela est une limite claire à notre analyse : certains jeux enchaînent plusieurs zones maritimes dans leur progression, qui s'intègrent donc à la courbe de difficulté, là où d'autres ne les traitent que plus tard par des détours optionnels.
+
+```{r q16_data, include=FALSE}
+q16_project_root <- if (file.exists("data/pokeapi/encounters.csv")) "." else ".."
+
+q16_path <- function(...) {
+  file.path(q16_project_root, ...)
+}
+
+q16_theme <- if (exists("theme_pokemon")) {
+  theme_pokemon
+} else {
+  theme_minimal(base_size = 12)
+}
+
+q16_region_levels <- c("Kanto", "Johto", "Hoenn", "Sinnoh", "Unova")
+
+q16_route_order <- function(region_label, route_numbers, area_identifiers = NA_character_, phase = "scenario") {
+  if (length(area_identifiers) == 1) {
+    area_identifiers <- rep(area_identifiers, length(route_numbers))
+  }
+
+  tibble(
+    region_label = region_label,
+    route_number = route_numbers,
+    area_identifier = area_identifiers,
+    story_order = seq_along(route_numbers),
+    phase = phase
+  )
+}
+
+q16_versions <- tribble(
+  ~region_identifier, ~region_label, ~version_identifier, ~version_label,
+  "kanto", "Kanto", "firered", "FireRed / LeafGreen",
+  "johto", "Johto", "heartgold", "HeartGold / SoulSilver",
+  "hoenn", "Hoenn", "emerald", "Emerald",
+  "sinnoh", "Sinnoh", "platinum", "Platinum",
+  "unova", "Unova", "black", "Black / White"
+)
+
+q16_story_routes <- bind_rows(
+  q16_route_order(
+    "Kanto",
+    c(1, 22, 2, 3, 4, 24, 25, 5, 6, 11, 9, 10, 8, 7, 12, 13, 14, 15, 16, 17, 18, 23)
+  ),
+  q16_route_order("Johto", c(29:39, 42:45)),
+  q16_route_order("Hoenn", c(101:104, 116, 110, 117, 112, 113, 114, 111, 115, 118:121, 123)),
+  q16_route_order(
+    "Sinnoh",
+    c(201, 202, 203, 207, 204, 205, 211, 206, 208, 209, 210, 211, 215, 214, 213, 212, 218, 216, 217, 222, 223),
+    c(NA, NA, NA, NA, NA, NA, "west-towards-eterna-city", NA, NA, NA, NA, "east-towards-celestic-town", NA, NA, NA, NA, NA, NA, NA, NA, NA)
+  ),
+  q16_route_order("Unova", 1:10),
+  q16_route_order("Unova", 11:18, phase = "postgame")
+) %>%
+  mutate(region_label = factor(region_label, levels = q16_region_levels))
+
+q16_stats <- read_csv(q16_path("data/pokeapi/pokemon_stats.csv"), show_col_types = FALSE) %>%
+  filter(stat_id %in% 1:6) %>%
+  group_by(pokemon_id) %>%
+  summarise(BST = sum(base_stat), .groups = "drop")
+
+q16_route_curve <- read_csv(q16_path("data/pokeapi/encounters.csv"), show_col_types = FALSE) %>%
+  left_join(
+    read_csv(q16_path("data/pokeapi/encounter_slots.csv"), show_col_types = FALSE) %>%
+      select(encounter_slot_id = id, encounter_method_id, rarity),
+    by = "encounter_slot_id"
+  ) %>%
+  left_join(
+    read_csv(q16_path("data/pokeapi/encounter_methods.csv"), show_col_types = FALSE) %>%
+      select(encounter_method_id = id, encounter_method = identifier),
+    by = "encounter_method_id"
+  ) %>%
+  filter(encounter_method == "walk") %>%
+  left_join(
+    read_csv(q16_path("data/pokeapi/location_areas.csv"), show_col_types = FALSE) %>%
+      select(location_area_id = id, location_id, area_identifier = identifier),
+    by = "location_area_id"
+  ) %>%
+  left_join(
+    read_csv(q16_path("data/pokeapi/locations.csv"), show_col_types = FALSE) %>%
+      select(location_id = id, region_id, location_identifier = identifier),
+    by = "location_id"
+  ) %>%
+  left_join(
+    read_csv(q16_path("data/pokeapi/regions.csv"), show_col_types = FALSE) %>%
+      select(region_id = id, region_identifier = identifier),
+    by = "region_id"
+  ) %>%
+  left_join(
+    read_csv(q16_path("data/pokeapi/versions.csv"), show_col_types = FALSE) %>%
+      select(version_id = id, version_identifier = identifier),
+    by = "version_id"
+  ) %>%
+  inner_join(q16_versions, by = c("region_identifier", "version_identifier")) %>%
+  mutate(
+    route_number = as.numeric(str_match(location_identifier, "(?:route|sea-route)-([0-9]+)")[, 2]),
+    level_mid = (min_level + max_level) / 2,
+    weight = coalesce(rarity, 1),
+    route_area_identifier = if_else(
+      region_label == "Sinnoh" & route_number == 211,
+      area_identifier,
+      NA_character_
+    )
+  ) %>%
+  filter(!is.na(route_number)) %>%
+  left_join(
+    q16_story_routes,
+    by = c("region_label", "route_number", "route_area_identifier" = "area_identifier")
+  ) %>%
+  filter(!is.na(story_order)) %>%
+  left_join(q16_stats, by = "pokemon_id") %>%
+  group_by(region_label, version_label, route_number, segment_area_identifier = route_area_identifier, story_order, phase) %>%
+  summarise(
+    n_encounters = n(),
+    n_pokemon = n_distinct(pokemon_id),
+    mean_level = weighted.mean(level_mid, weight, na.rm = TRUE),
+    max_level = max(max_level, na.rm = TRUE),
+    mean_bst = weighted.mean(BST, weight, na.rm = TRUE),
+    difficulty_index = weighted.mean(level_mid * BST / 100, weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(region_label, story_order)
+
+q16_scenario_curve <- q16_route_curve %>%
+  filter(phase == "scenario") %>%
+  mutate(region_label = factor(region_label, levels = q16_region_levels))
+
+q16_balance_summary <- q16_scenario_curve %>%
+  group_by(region_label, version_label) %>%
+  summarise(
+    routes_analysees = n(),
+    niveau_depart = first(mean_level),
+    niveau_fin = last(mean_level),
+    gain_niveau = last(mean_level) - first(mean_level),
+    correlation_niveau = cor(story_order, mean_level, method = "spearman"),
+    correlation_indice = cor(story_order, difficulty_index, method = "spearman"),
+    nb_reculs = sum(diff(mean_level) < -1),
+    plus_fort_recul = min(c(0, diff(mean_level))),
+    gain_bst = last(mean_bst) - first(mean_bst),
+    .groups = "drop"
+  ) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 2)))
+
+q16_level_long <- q16_scenario_curve %>%
+  select(region_label, story_order, route_number, segment_area_identifier, mean_level, max_level) %>%
+  pivot_longer(
+    cols = c(mean_level, max_level),
+    names_to = "metric",
+    values_to = "level"
+  ) %>%
+  mutate(
+    metric = recode(
+      metric,
+      mean_level = "Niveau moyen pondéré",
+      max_level = "Niveau maximum"
+    )
+  )
+```
+
+```{r q16_level_plot, fig.height=7, fig.width=10}
+ggplot(q16_level_long, aes(story_order, level, colour = metric, linetype = metric)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.8) +
+  facet_wrap(vars(region_label), scales = "free_x") +
+  scale_colour_manual(values = c("Niveau moyen pondéré" = "#2F6B8E", "Niveau maximum" = "#D95F02")) +
+  scale_linetype_manual(values = c("Niveau moyen pondéré" = "solid", "Niveau maximum" = "dashed")) +
+  labs(
+    title = "Les niveaux sauvages montent au fil du scénario",
+    subtitle = "Ordre manuel ; rencontres standards en marchant uniquement.",
+    x = "Rang approximatif dans le scénario",
+    y = "Niveau",
+    colour = NULL,
+    linetype = NULL
+  ) +
+  q16_theme
+```
+
+```{r q16_difficulty_plot, fig.height=7, fig.width=10}
+ggplot(q16_scenario_curve, aes(story_order, difficulty_index)) +
+  geom_line(colour = "#2F6B8E", linewidth = 0.8) +
+  geom_point(aes(size = n_pokemon), colour = "#D95F02", alpha = 0.85) +
+  facet_wrap(vars(region_label), scales = "free_x") +
+  scale_size_continuous(range = c(1.5, 4), guide = "none") +
+  labs(
+    title = "L'indice niveau × stats suit la même progression générale",
+    subtitle = "La taille des points indique le nombre d'espèces distinctes rencontrées.",
+    x = "Rang approximatif dans le scénario",
+    y = "Indice de difficulté"
+  ) +
+  q16_theme
+```
+
+```{r q16_summary_table}
+knitr::kable(
+  q16_balance_summary %>%
+    rename(
+      Région = region_label,
+      Version = version_label,
+      `Segments` = routes_analysees,
+      `Niveau départ` = niveau_depart,
+      `Niveau fin` = niveau_fin,
+      `Gain niveau` = gain_niveau,
+      `Corr. niveau` = correlation_niveau,
+      `Corr. indice` = correlation_indice,
+      `Reculs > 1 niv.` = nb_reculs,
+      `Plus fort recul` = plus_fort_recul,
+      `Gain BST` = gain_bst
+    ),
+  caption = "Résumé de progression sur les segments principaux du scénario"
+)
+```
+
+Globalement, la difficulté sauvage augmente bien au fil du scénario. La hausse vient surtout des niveaux. Les statistiques de base ajoutent du bruit, mais l'indice combiné suit la même tendance.
+
+Demeurent certaines irrégularités, notamment dûes à l'absence des routes nécessitant Surf ou la pêche, qui suivent en général le niveau des routes terrestres adjacentes, mais pas toujours (et qui ont surtout vocation à être explorées plus tard par du backtracking). 
+
+Ce qui en ressort, c'est la structure non-linéaire d'une partie du scénario : pour la région de Kanto, cela intervient à partir de Céladopole, où le joueur peut choisir de déjouer les plans de la team Rocket, partir à Lavanville et rejoindre Parmanie (au sud) par l'Est, ou bien passer par la piste cyclable et rejoindre parmanie par l'Ouest. À Johto, il y a de nouveau un plateau, après la 4ème arène à Rosalia, le joueur obtient Surf et peut partir à l'Est et pour arriver à Écorcia et au Lac Colère, ou partir à l'Ouest obtenir deux badges et revenir vers l'Est plus tard, avant d'arriver sur un pic de niveau énorme, qui compense un peu maladroitement la progression plate des zones précédentes. 
+
+Hoenn a également une structure non-linéaire avec des boucles, mais celle-ci est beaucoup plus quadrillée et tous les joueurs vont suivre globalement le même chemin. Sinnoh est plus linéaire, avec des routes en deux parties que l'on réexplore plus tard, d'où certains reculs du niveau moyen là où on ne peut pas distinguer les zones. Unys est de loin la région la plus linéaire, avec un scénario très dirigiste et peu de choix pour le joueur : elle marque le début d'une nouvelle manière de concevoir les jeux Pokémon, qui s'est éloignée petit à petit de la structure ouverte de Kanto.

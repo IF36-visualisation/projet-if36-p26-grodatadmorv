@@ -101,6 +101,11 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 
 \newpage
 
+```{r child_q16, child = 'analyses/q16_progression_difficulte.Rmd'}
+```
+
+\newpage
+
 ## Conception du bestiaire
 ```{r child_q17, child = 'analyses/q17_capture_rate.Rmd'}
 ```
