@@ -72,6 +72,11 @@ shape_names_en <- read_csv(paste0(POKEAPI_PATH, "pokemon_shape_prose.csv"), show
 
 # --- Efficacité des types ---
 type_efficacy <- read_csv(paste0(POKEAPI_PATH, "type_efficacy.csv"), show_col_types = FALSE)
+type_efficacy_past <- read_csv(paste0(POKEAPI_PATH, "type_efficacy_past.csv"), show_col_types = FALSE) 
+type_efficacy_past <- type_efficacy_past %>% filter(generation_id == 1) %>% select(damage_type_id, target_type_id, damage_factor)
+type_efficacy_past <- type_efficacy %>% 
+  rows_update(type_efficacy_past, by = c("damage_type_id", "target_type_id"))
+type_efficacy_past <- type_efficacy_past %>% filter_out(damage_type_id==18|target_type_id ==18|damage_type_id==17|damage_type_id==9|target_type_id ==17|target_type_id ==9)
 
 # ============================================================================
 # B) Construction du dataset PokeAPI principal (toutes générations)
