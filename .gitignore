@@ -96,7 +96,6 @@ vignettes/*.pdf
 *.knit.md
 
 # Unwanted Output R markdown files
-*.html
 *.tex
 *.pdf
 

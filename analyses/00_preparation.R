@@ -9,6 +9,11 @@ library(tidyverse)
 library(arrow)
 library(ggrepel)
 library(scales)
+library(plotly)
+library(stringr)
+library(tidygraph)
+library(ggraph)
+
 
 # --- Chemins ---
 POKEAPI_PATH <- "data/pokeapi/"
