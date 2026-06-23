@@ -79,9 +79,11 @@ type_efficacy_past <- type_efficacy %>%
 type_efficacy_past <- type_efficacy_past %>% filter_out(damage_type_id==18|target_type_id ==18|damage_type_id==17|damage_type_id==9|target_type_id ==17|target_type_id ==9)
 
 # --- Talents ---
-pokemon_ability <- read_csv(paste0(POKEAPI_PATH, "abilities.csv"))
+abilities <- read_csv(paste0(POKEAPI_PATH, "abilities.csv"))
+pokemon_abilities <- read.csv(paste0(POKEAPI_PATH, "pokemon_abilities.csv")) %>% filter(pokemon_id <= 10000)
 # --- Attaques ---
-pokemon_moves <- read_csv(paste0(POKEAPI_PATH, "moves.csv"))
+moves <- read_csv(paste0(POKEAPI_PATH, "moves.csv"))
+pokemon_moves <- read.csv(paste0(POKEAPI_PATH, "pokemon_moves.csv")) %>% filter(pokemon_id <= 10000)
 # ============================================================================
 # B) Construction du dataset PokeAPI principal (toutes générations)
 # ============================================================================

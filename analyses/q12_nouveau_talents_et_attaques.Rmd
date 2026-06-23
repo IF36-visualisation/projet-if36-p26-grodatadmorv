@@ -6,7 +6,7 @@ Dans les nouvelles générations, il est courant que les pokemon introduits aien
 
 ```{r}
 # réccupération des talents par génération
-ability_pergen <- pokemon_ability %>% filter(is_main_series==1) %>% count(generation_id)
+ability_pergen <- abilities %>% filter(is_main_series==1) %>% count(generation_id)
 
 # affichage du graph du nombre de talent par génération
 ggplot(ability_pergen, aes(x = generation_id, y = n)) +
@@ -25,11 +25,11 @@ Dans ce graphique, on peut voir que la 3eme génération est la génération int
 
 ```{r}
 # réccupération des attaques par génération
-moves_pergen <- pokemon_moves %>% filter(id<=10000) %>% count(generation_id)
+moves_pergen <- moves %>% filter(id<=10000) %>% count(generation_id)
 
 # affichage du graph du nombre d'attaques par génération
 ggplot(moves_pergen, aes(x = generation_id, y = n)) +
-  geom_col(fill = "#32CD32", width = 0.6) +
+  geom_col(fill = "#FFD700", width = 0.6) +
   geom_text(aes(label = n), vjust = -0.3, size = 3.5, fontface = "bold") +
   labs(
     title    = "Nombre de talent introduit chaque génération",
@@ -41,3 +41,44 @@ ggplot(moves_pergen, aes(x = generation_id, y = n)) +
 Dans ce second graph on peut noter que la première générations est celle qui a introduit le plus d'attaque, ce qui semble logique car c'est le premier jeu de la série. On ne peu pas remarquer de tendance précise, car la plupart des génération tourne autour des 100 attaques introduites. La 6eme génération n'introduit que peu d'attaque, ce qui peu peut-être s'expliquer par l'introduction des méga-évolutions, qui garde les mêmes attaques que le pokemon qui méga-évolue. La 7ème génération introduit beaucoup d'attaque, à cause des attaques Z, qui est la méchanique de génération. 
 Enfin, surprenamment, la 9ème génération n'introduit que très peu de nouvelles attaques, ce qui va à l'inverse de notre intuition originale.
 Cependant, ici on ne regarde pas la distribution de ces attaques. On pourrait vouloir savoir si les attaques introduites sont distribuées à beaucoup de pokemon, ou uniquement aux nouveaux pokemon, ce qui avantagerait les nouveaux pokemon. 
+
+## Graphique n°3: nombre de talents signature de chaque générations.
+```{r}
+#récupération des talents signatures de pokemon de stades 1
+signature_ability_stage1 <- pokemon_abilities %>% mutate(id=pokemon_id, ability_id = ability_id) %>% select(id, ability_id) %>% left_join(pokeapi) %>% filter_out(evolves_from_species_id >= 0) %>% group_by(ability_id) %>% filter(n()==1) %>% ungroup() %>% select(id, ability_id, species_name, generation_id)
+#récupération des talents uniques
+unique_abilities <- pokemon_abilities %>% group_by(ability_id) %>% filter(n()==1) %>% ungroup() %>% mutate(id=pokemon_id, ability_id = ability_id) %>% select(id, ability_id) %>% left_join(pokeapi) %>% select(id, ability_id, species_name, generation_id) 
+#fusion en un tableau et correction des erreurs
+pokemon_with_signature_abilities <- full_join(unique_abilities, signature_ability_stage1) %>% filter_out(ability_id == 2 | ability_id == 63 | ability_id == 90 | ability_id == 111 | ability_id == 116 | ability_id == 136 | ability_id == 169 | ability_id == 181 | ability_id == 192 | ability_id == 201) %>%  select(ability_id, species_name) %>% mutate(id=ability_id) %>% left_join(abilities) %>% count(generation_id) 
+# affichage du graph du nombre d'attaques par génération
+ggplot(pokemon_with_signature_abilities, aes(x = generation_id, y = n)) +
+  geom_col(fill = "#6495ED", width = 0.6) +
+  geom_text(aes(label = n), vjust = -0.3, size = 3.5, fontface = "bold") +
+  labs(
+    title    = "Nombre de talent signatures de chaques générations",
+    subtitle = "Chaque barre = nombre de talents signatures présent sur des pokemon de la génération",
+    x = "genération", y = "Nombre de talents signatures"
+  ) +
+  theme_pokemon
+```
+Sur ce graphique, on voit bien que au cours des générations, il y a de plus en plus de talents signatures qui sont introduits, ce qui est conforme à notre intuition initiale. Cela peut aussi s'expliquer par le fait que avec le temps, des talents qui était donné à un seul Pokemon sont donnés à un nouveau pokemon, ou rendu plus commun. On peu citer par exemple le talent Coloforce de Azumarill, qui a depuis été donné à des méga évolution et des nouveaux pokemon comme Escavarenne. 
+La 6eme génération est peut-être sous-estimée, car nous ne prenons pas en compte les mega-évolutions dans ce graphique.
+On regarde ici la génération ou les talents ont été introduits et non pas la génération du pokemon auquel elles ont été donné. Le talent signature (gaz neutralisant) de Smogogo est donc compté en 8g plutôt qu'en 1g, ce qui explique l'absence de talent avant la 3ème génération.
+
+## Graphique n°4: nombre d'attaque signature de chaque générations.
+```{r}
+
+#récupération des talents singatures
+signature_moves <- pokemon_moves %>% mutate(id=pokemon_id) %>% select(id, move_id) %>% left_join(pokeapi) %>% group_by(move_id) %>% filter(n()<=3) %>% ungroup() %>% select(id, move_id, species_name, generation_id) %>% distinct() %>% select(move_id, species_name) %>% mutate(id=move_id) %>% left_join(moves) %>% count(generation_id) 
+ggplot(signature_moves, aes(x = generation_id, y = n)) +
+  geom_col(fill = "#6495ED", width = 0.6) +
+  geom_text(aes(label = n), vjust = -0.3, size = 3.5, fontface = "bold") +
+  labs(
+    title    = "Nombre de talent introduit chaque génération",
+    subtitle = "Chaque barre = nombre de talents introduit dans la génération",
+    x = "genération", y = "Nombre de talents introduits"
+  ) +
+  theme_pokemon
+```
+Comme pour les talents, on peut voir que de plus en plus d'attaques signatures apparaîssent au fil des années. La neuvième génération est largement la génération ou le plus d'attaque signature apparaîssent. Notre intuition semble donc être la bonne.
+Comme pour les talents, ces chiffres peuvent être sous-estimés, car beaucoup d'attaque qui était signatures ne le sont plus aujourd'hui. 
