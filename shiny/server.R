@@ -5,13 +5,32 @@ library(ggplot2)
 library(plotly)
 
 addResourcePath("img", "../img/")
-addResourcePath("sprite", "../data/pokeapi/sprites")
+
+sprite_dir <- "../data/pokeapi/sprites"
+
+sprite_src <- function(id) {
+  id <- as.character(id)
+  sprite_file <- file.path(sprite_dir, paste0(id, ".png"))
+
+  if (length(id) == 0 || is.na(id) || !file.exists(sprite_file)) {
+    return("sprite/substitute.png")
+  }
+
+  paste0("sprite/", id, ".png")
+}
 
 encounters <- read.csv("../data/pokeapi/encounters.csv")
 locations  <- read.csv("../data/pokeapi/locations.csv")
+location_areas <- read.csv("../data/pokeapi/location_areas.csv")
 
-region_names <- c("1"="Kanto","2"="Johto","3"="Hoenn","4"="Sinnoh",
-                  "5"="Unova","6"="Kalos","7"="Alola","8"="Galar")
+generation_region_names <- c("1"="Kanto","2"="Johto","3"="Hoenn","4"="Sinnoh",
+                             "5"="Unova","6"="Kalos","7"="Alola","8"="Galar",
+                             "9"="Paldea")
+
+encounter_region_names <- c("1"="Kanto","2"="Johto","3"="Hoenn","4"="Sinnoh",
+                            "5"="Unova","6"="Kalos","7"="Alola")
+
+encounter_region_ids <- as.numeric(names(encounter_region_names))
 
 pokemon <- read.csv("../data/pokeapi/pokemon.csv") %>%
   select(id, identifier) %>%
@@ -19,12 +38,19 @@ pokemon <- read.csv("../data/pokeapi/pokemon.csv") %>%
   mutate(pokemon_name = stringr::str_to_title(pokemon_name))
 
 merged_enc <- encounters %>%
-  left_join(locations, by = c("location_area_id" = "id")) %>%
+  filter(pokemon_id < 10000) %>%
+  left_join(location_areas, by = c("location_area_id" = "id")) %>%
+  left_join(locations, by = c("location_id" = "id")) %>%
   left_join(pokemon, by = c("pokemon_id" = "id")) %>%
-  filter(!is.na(region_id))
+  filter(region_id %in% encounter_region_ids)
+
+pokemon_species <- read.csv("../data/pokeapi/pokemon_species.csv") %>%
+  select(species_id = id, generation_id)
 
 pokemon_full <- read.csv("../data/pokeapi/pokemon.csv") %>%
-  select(id, identifier, weight, height) %>%
+  filter(id < 10000, is_default == 1) %>%
+  select(id, species_id, identifier, weight, height) %>%
+  left_join(pokemon_species, by = "species_id") %>%
   rename(pokemon_name = identifier) %>%
   mutate(pokemon_name = stringr::str_to_title(pokemon_name))
 
@@ -56,16 +82,15 @@ bio_gen <- read.csv("../data/pokeapi/pokemon.csv") %>%
 function(input, output) {
   # Ids des Pokémon présents dans la région sélectionnée
   ids_region <- reactive({
-    merged_enc %>%
-      filter(region_id == as.numeric(input$region_enc)) %>%
-      distinct(pokemon_id) %>%
-      pull(pokemon_id)
+    pokemon_full %>%
+      filter(generation_id == as.numeric(input$stats_generation)) %>%
+      pull(id)
   })
   
   # Fabrique une carte (sprite + nom + poids) pour un Pokémon donné
   carte_pokemon_poids <- function(p) {
     tags$div(style = "text-align: center;",
-             tags$img(src = paste0("sprite/pokemon/", p$id, ".png"),
+             tags$img(src = sprite_src(p$id),
                       height = "120px", style = "image-rendering: pixelated;"),
              tags$h4(style = "color: white;", p$pokemon_name),
              tags$p(style = "color: #ccc;", paste0(p$weight / 10, " kg"))
@@ -75,7 +100,7 @@ function(input, output) {
   # Fabrique une carte (sprite + nom + taille) pour un Pokémon donné
   carte_pokemon_taille <- function(p) {
     tags$div(style = "text-align: center;",
-             tags$img(src = paste0("sprite/pokemon/", p$id, ".png"),
+             tags$img(src = sprite_src(p$id),
                       height = "120px", style = "image-rendering: pixelated;"),
              tags$h4(style = "color: white;", p$pokemon_name),
              tags$p(style = "color: #ccc;", paste0(p$weight / 100, " m"))
@@ -85,26 +110,26 @@ function(input, output) {
   # --- Page 1 ---
   output$Individus <- renderValueBox({
     valueBox(length(ids_region()),
-             "Pokémon distincts dans la région",
+             "Espèces principales dans la région",
              icon = icon("list"), color = "purple")
   })
   
   output$Total <- renderValueBox({
-    valueBox(n_distinct(merged_enc$pokemon_id),
-             "Pokémon distincts au total",
+    valueBox(n_distinct(pokemon_full$id),
+             "Espèces principales au total",
              icon = icon("globe"), color = "purple")
   })
   
   output$heaviest <- renderUI({
     p <- pokemon_full %>%
-      filter(id %in% ids_region(), id < 10000) %>%
+      filter(id %in% ids_region()) %>%
       arrange(desc(weight)) %>% slice(1)
     carte_pokemon_poids(p)
   })
   
   output$lightest <- renderUI({
     p <- pokemon_full %>%
-      filter(id %in% ids_region(), id < 10000, weight > 0) %>%
+      filter(id %in% ids_region(), weight > 0) %>%
       arrange(weight) %>% slice(1)
     carte_pokemon_poids(p)
   })
@@ -124,9 +149,17 @@ function(input, output) {
   })
   
   output$region_img <- renderUI({
-    region_label <- tolower(region_names[as.character(input$region_enc)])
+    region_label <- generation_region_names[as.character(input$stats_generation)]
+    region_img <- paste0("img/regions/", region_label, ".png")
+    region_file <- file.path("../img/regions", paste0(region_label, ".png"))
+
+    if (!file.exists(region_file)) {
+      return(tags$p(style = "text-align: center; color: #888;",
+                    paste("Carte indisponible pour", region_label)))
+    }
+
     tags$div(style = "text-align: center;",
-      tags$img(src = paste0("img/regions/", region_label, ".png"),
+      tags$img(src = region_img,
                height = "200px", width = "auto")
     )
   })
@@ -134,7 +167,7 @@ function(input, output) {
   # --- Page 2 ---
   output$plot_enc_bar <- renderPlotly({
     df <- merged_enc %>%
-      filter(region_id == as.numeric(input$region_enc)) %>%
+      filter(region_id == as.numeric(input$enc_region)) %>%
       group_by(pokemon_name) %>%
       summarise(nb_encounters = n(), .groups = "drop") %>%
       arrange(if (input$enc_order == "desc") desc(nb_encounters) else nb_encounters) %>%
@@ -150,7 +183,7 @@ function(input, output) {
   })
   output$plot_enc_bar_text <- renderUI({
     df <- merged_enc %>%
-      filter(region_id == as.numeric(input$region_enc)) %>%
+      filter(region_id == as.numeric(input$enc_region)) %>%
       group_by(pokemon_name) %>%
       summarise(nb = n(), .groups = "drop") %>%
       mutate(pct = round(nb / sum(nb) * 100, 1))
@@ -159,7 +192,7 @@ function(input, output) {
     last1   <- df %>% slice_min(nb, n = 1, with_ties = FALSE)
     top3_pct <- df %>% slice_max(nb, n = 3) %>% summarise(sum(pct)) %>% pull()
     nb_especes <- nrow(df)
-    region_label <- region_names[as.character(input$region_enc)]
+    region_label <- encounter_region_names[as.character(input$enc_region)]
     
     tags$p(
       style = "color: #888; font-style: italic; padding: 10px;",
@@ -177,7 +210,7 @@ function(input, output) {
   
   output$plot_enc_treemap <- renderPlotly({
     df <- merged_enc %>%
-      filter(region_id == as.numeric(input$region_enc)) %>%
+      filter(region_id == as.numeric(input$enc_region)) %>%
       group_by(pokemon_id, pokemon_name) %>%
       summarise(nb_encounters = n(), .groups = "drop") %>%
       top_n(20, nb_encounters)
@@ -195,14 +228,14 @@ function(input, output) {
   })
   output$treemap_text <- renderUI({
     df <- merged_enc %>%
-      filter(region_id == as.numeric(input$region_enc)) %>%
+      filter(region_id == as.numeric(input$enc_region)) %>%
       group_by(pokemon_name) %>%
       summarise(nb = n(), .groups = "drop") %>%
       mutate(pct = nb / sum(nb) * 100)
     
     top1 <- df %>% slice_max(nb)
     top3_pct <- df %>% slice_max(nb, n = 3) %>% summarise(sum(pct)) %>% pull()
-    region_label <- region_names[as.character(input$region_enc)]
+    region_label <- encounter_region_names[as.character(input$enc_region)]
     
     tags$p(style = "color: #888; font-style: italic; padding: 10px;",
            paste0("En ", region_label, ", ", top1$pokemon_name,
@@ -320,4 +353,3 @@ function(input, output) {
                   "répartition mâle/femelle au sein des espèces."))
   })
 }
-

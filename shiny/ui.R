@@ -3,6 +3,7 @@ library(shinydashboard)
 library(plotly)
 
 addResourcePath("img", "../img/")
+addResourcePath("sprite", "../data/pokeapi/sprites")
 
 title <- tags$a(href='#',
                 tags$img(
@@ -27,18 +28,19 @@ dashboardPage(
     conditionalPanel(
       condition = "input.tabs == 'stats'",
       selectInput(
-        "region_enc", "Région",
+        "stats_generation", "Région",
         choices = c("Kanto"=1,"Johto"=2,"Hoenn"=3,"Sinnoh"=4,
-                    "Unova"=5,"Kalos"=6,"Alola"=7,"Galar"=8),
+                    "Unova"=5,"Kalos"=6,"Alola"=7,"Galar"=8,
+                    "Paldea"=9),
         selected = 1
       ),
     ),
     conditionalPanel(
       condition = "input.tabs == 'rencontres'",
       selectInput(
-        "region_enc", "Région",
+        "enc_region", "Région",
         choices = c("Kanto"=1,"Johto"=2,"Hoenn"=3,"Sinnoh"=4,
-                    "Unova"=5,"Kalos"=6,"Alola"=7,"Galar"=8),
+                    "Unova"=5,"Kalos"=6,"Alola"=7),
         selected = 1
       ),
       sliderInput("top_n", "Nombre de Pokémon", min=5, max=30, value=15),
@@ -165,4 +167,3 @@ dashboardPage(
     )
   )
 )
-
