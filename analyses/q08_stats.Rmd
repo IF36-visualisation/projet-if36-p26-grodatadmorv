@@ -34,7 +34,7 @@ mean_stats %>% arrange(stat_id) %>%
 ```
 On remarque que dans la majorité des générations, l'Attaque est plus élevée que les autres statistiques, parfois de beaucoup. Dans la plupart, la défense est deuxième, bien que cela soit moins flagrant. On peut ainsi imaginer qu'il existe plus de Pokémon offensifs sur le physique que d'autres profils. En ce qui concerne le "power creep", il est bel et bien visible: les valeurs augmentent au fil des générations.
 
-## Certains Pokémon ont-ils un profil plus spécialisé (ex: haute attaque faible attaque spéciale), certains sont-ils plus homogènes ?
+### Certains Pokémon ont-ils un profil plus spécialisé (ex: haute attaque faible attaque spéciale), certains sont-ils plus homogènes ?
 
 Pour cette analyse, on peut tenter de déterminer la moyenne de chaque statistique selon la statistique la plus élevée de chaque Pokémon.
 

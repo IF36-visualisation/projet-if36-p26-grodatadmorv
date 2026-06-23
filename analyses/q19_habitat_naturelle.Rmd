@@ -1,6 +1,6 @@
 ## 19. L'habitat naturel d'un Pokémon (grotte, forêt, zone urbaine…) correspond-il à son type (e.g.: Plante = forêt), ou y a-t-il une certaine diversité par environnement ? (`pokemon_habitats.csv`, `pokemon_types.csv`, `pokemon_species.csv`)
 
-## Graphique n°1 : Heatmap
+### Graphique n°1 : Heatmap
 
 
 ```{r habitat, echo = FALSE, fig.width = 9, fig.height = 5}
@@ -27,7 +27,7 @@ ggplot(df, aes(x = type, y = habitat, fill = n)) +
 )
 
 ```
-## Graphique n°2 : Stacked Bar Chart
+### Graphique n°2 : Stacked Bar Chart
 
 ```{r q19, echo = FALSE, fig.width = 9, fig.height = 5}
 df <- habitat_type %>%
