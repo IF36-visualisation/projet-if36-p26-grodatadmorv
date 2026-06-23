@@ -13,6 +13,7 @@ output:
     fig_width: 9
     fig_height: 6
     number_sections: true
+    latex_engine: xelatex
 header-includes:
   - \usepackage{geometry}
   - \geometry{top=2cm, left=2cm, bottom=2cm, right=2cm}
@@ -133,6 +134,23 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 ```
 
 \newpage
+
+# Shiny App
+
+![](img/page_stats.png)
+
+A gauche, une barre de navigation propose les sections Stats, Rencontres et Bestiaires, ainsi qu'un sélecteur de région (ici réglé sur Unova). La zone principale présente le nombre total d'espèces (1025) et celles présentes dans la région (156), suivi de quatre cartes mettant en avant le Pokémon le plus lourd, le plus léger, le plus grand et le plus petit, chacun avec son image et sa mesure. Une dernière carte affiche la carte de la région.
+
+
+![](img/page_rencontres.png)
+
+Sur cette page, la barre de navigation propose les mêmes sections qu'avant ainsi qu'un sélecteur de région. On retrouve aussi une barre de sélection permettant d'afficher le nombre de pokémon dans l'histogramme, ainsi qu'un sélecteur permettant de changer l'affichage de ce même histogramme. La zone principale comporte deux sous-zones. La première, en haut, est juste un point d'information concernant les données. La deuxième zone comporte deux graphiques, un histogramme représentant la fréquence de rencontres par Pokémon et une carte thermique représentant la distribution globale des pokémons.
+
+![](img/page_bestiaire_1.png)
+Sur cette page, la barre de navigation propose les mêmes sections qu'avant ainsi que la mesure à prendre pour l'affichage des données. La zone principale comporte deux sous-zones. La première, en haut, est juste un point d'information concernant les données. La deuxième zone comporte trois graphiques, un geom_tile représentant le nombre de type de pokémon par habitat, une boit à moustache représentant l'a distribution globale des pokémons'évolution biologique par génération.
+
+![](img/page_bestiaires_2.png)
+On retrouve aussi un troisième graphique en barre représentant le pourcentage de pokémon présentant un dimorphisme par génération.
 
 # Limites
 
