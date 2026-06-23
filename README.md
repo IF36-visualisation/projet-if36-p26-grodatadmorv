@@ -133,7 +133,7 @@ Nous tâcherons de déterminer comment sont caractérisés les Pokémon les plus
 5. Observe-t-on des combinaisons récurrentes (teammates) qui signalent des synergies fortes ? (`smogon`)
 6. Quel type d'attaque sont les plus utilisés dans les différentes générations ? Est-ce corrélé avec le type le plus présent de chaque tier ? (`smogon`)
 7. Quels facteurs (attaques, talents, stats) expliquent le bannissement d'un Pokémon de l'OverUsed ? (`smogon`, `moves.csv`, `abilities.csv`, `pokemon_stats.csv`)
-
+    
 #### Équilibrage & Game Design
 
 8. La distribution des statistiques est-elle équlibrée au sein d'une même génération ? Certains Pokémon ont-ils un profil plus spécialisé (ex: haute attaque faible attaque spéciale), certains sont-ils plus homogènes ? (`pokemon_stats.csv`)

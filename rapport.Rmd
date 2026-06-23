@@ -78,6 +78,9 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 \newpage
 ```{r child_q03, child = 'analyses/q03_gen_repres.Rmd'}
 ```
+
+```{r child_q05, child = 'analyses/q5_teammates.Rmd'}
+```
 \newpage
 ```{r child_q06, child = 'analyses/q06_moves.Rmd'}
 ```
