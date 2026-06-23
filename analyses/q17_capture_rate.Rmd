@@ -13,7 +13,8 @@ ggplot(capture_table, aes(capture_rate, BST, colour = factor(generation_id))) +
   labs(
     color = "Génération",
     x     = "Taux de capture",
-    y     = "Total des stats de base"
+    y     = "Total des stats de base",
+    title = "Taux de capture des Pokémon selon leur total de statistiques"
   )
 
 ```

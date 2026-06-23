@@ -162,19 +162,25 @@ smogon_usage <- smogon_usage_monthly %>%
   arrange(desc(usage_pct_mean))
 
 smogon_usage_by_gen <- map(1:9, ~ get(paste0("smogon_usage_monthly_", .x, "g")) %>%
-  group_by(pokemon) %>%
-  summarise(
-    usage_pct_mean  = mean(usage_pct, na.rm = TRUE),
-    raw_count_total = sum(raw_count, na.rm = TRUE),
-    n_months        = n(),
-    .groups = "drop"
-    ) %>%
-    arrange(desc(usage_pct_mean))
-  ) %>%
+                             group_by(pokemon) %>%
+                             summarise(
+                               usage_pct_mean  = mean(usage_pct, na.rm = TRUE),
+                               raw_count_total = sum(raw_count, na.rm = TRUE),
+                               n_months        = n(),
+                               .groups = "drop"
+                             ) %>%
+                             arrange(desc(usage_pct_mean))
+) %>%
   set_names(paste0("g", 1:9))
 
 # --- Moves par mois ---
 smogon_moves_monthly <- read_parquet(paste0(SMOGON_PATH, "gen1ou-smogon_moves.parquet"))
+for (g in 1:9) {
+  assign(
+    paste0("smogon_moves_monthly_", g, "g"),
+    read_parquet(paste0(SMOGON_PATH, "gen", g, "ou-smogon_moves.parquet"))
+  )
+}
 
 # --- Moves agrégés (usage moyen de chaque move par Pokémon) ---
 smogon_moves <- smogon_moves_monthly %>%
@@ -183,6 +189,17 @@ smogon_moves <- smogon_moves_monthly %>%
     usage_pct_mean = mean(usage_pct, na.rm = TRUE),
     .groups = "drop"
   )
+
+smogon_moves_by_gen <- 
+  map(1:9, ~ get(paste0("smogon_moves_monthly_", .x, "g")) %>%
+        group_by(move) %>%
+        summarise(
+          usage_pct_mean = mean(usage_pct, na.rm = TRUE),
+          .groups = "drop"
+        ) %>%
+        arrange(desc(usage_pct_mean))
+  ) %>%
+  set_names(paste0("g", 1:9))
 
 # --- Teammates par mois ---
 smogon_teammates_monthly <- read_parquet(paste0(SMOGON_PATH, "gen1ou-smogon_teammates.parquet"))

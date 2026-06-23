@@ -1,0 +1,131 @@
+## Question 6 : Quel type d'attaque sont les plus utilisés dans les différentes générations ? Est-ce corrélé avec leur type le plus présent ?
+
+```{r moves_types}
+moves_lookup <- moves %>% select(identifier, type_id)
+types_lookup <- type_names_en %>% select(type_id, type_name)
+
+moves_typed <- map(1:9, ~ {
+  smogon_moves_by_gen[[paste0("g", .x)]] %>%
+    mutate(move_clean = str_to_lower(str_replace_all(move, " ", "-"))) %>%
+    left_join(moves_lookup, by = c("move_clean" = "identifier")) %>%
+    left_join(types_lookup, by = "type_id") %>%
+    mutate(meta_gen = .x)
+}) %>%
+  bind_rows()
+
+moves_type_usage <- moves_typed %>%
+  group_by(meta_gen, type_name) %>%
+  summarise(usage_total = sum(usage_pct_mean, na.rm = TRUE), .groups = "drop") %>%
+  group_by(meta_gen) %>%
+  mutate(usage_share = usage_total / sum(usage_total)) %>%   # part du type dans sa génération
+  ungroup() %>%
+  rename(gen = meta_gen)
+
+ggplot(moves_type_usage, aes(x = factor(gen), y = type_name, fill = usage_share)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = ifelse(usage_share >= 0.03,
+                               scales::percent(usage_share, accuracy = 1), ""),
+                color = usage_share > 0.5 * max(usage_share)),
+            size = 2.5, show.legend = FALSE) +
+  scale_color_manual(values = c("TRUE" = "white", "FALSE" = "black")) +
+  scale_fill_viridis_c(option = "magma", direction = -1,
+                       labels = scales::percent, name = "Part d'usage") +
+  labs(
+    title = "Types d'attaque les plus utilisés selon la génération",
+    x = "Génération du méta",
+    y = "Type d'attaque",
+  ) +
+  theme_pokemon
+```
+On remarque que le type normal est toujours utilisé dans chaque génération. Il contient certes des attaques très puissantes (utilisées par les Pokémons majoritaires de la 1G, presque tous de type normal comme Tauros ou Leveinard), mais est surtout le type de la plupart des capacités dites de "statut" (plus orientées support, par exemple réduisant les statistiques de l'adversaire).
+
+On souhaite maintenant savoir si ces choix d'attaques sont liés aux types des Pokémons utilisés. Cela serait logique à cause du concept de STAB (Same Type Attack Bonus), qui augmente les dégâts des attaques utilisées par un Pokémon de leur type.
+
+```{r poke_types}
+
+pokeapi_type_lookup <- pokeapi %>% select(species_name, type1_name, type2_name)
+
+smogon_pokemon_typed <- map(1:9, ~ {
+  smogon_usage_by_gen[[paste0("g", .x)]] %>%
+    mutate(
+      pokemon_corrected  = recode(pokemon, !!!corrections),
+      species_name_clean = str_remove(pokemon_corrected, "-.*$")
+    ) %>%
+    left_join(pokeapi_type_lookup, by = c("pokemon_corrected" = "species_name")) %>%
+    left_join(pokeapi_type_lookup, by = c("species_name_clean" = "species_name"),
+              suffix = c("", "_trunc")) %>%
+    mutate(
+      matched_full = !is.na(type1_name),
+      type1_name = if_else(matched_full, type1_name, type1_name_trunc),
+      type2_name = if_else(matched_full, type2_name, type2_name_trunc)
+    ) %>%
+    select(-ends_with("_trunc"), -species_name_clean, -pokemon_corrected, -matched_full) %>%
+    mutate(meta_gen = .x)
+}) %>%
+  bind_rows()
+
+pokemon_type_usage <- smogon_pokemon_typed %>%
+  pivot_longer(cols = c(type1_name, type2_name),
+               names_to = "slot", values_to = "type_name") %>%
+  filter(!is.na(type_name)) %>%                         # on retire les 2e types absents
+  group_by(meta_gen, type_name) %>%
+  summarise(usage_total = sum(usage_pct_mean, na.rm = TRUE), .groups = "drop") %>%
+  group_by(meta_gen) %>%
+  mutate(usage_share = usage_total / sum(usage_total)) %>%
+  ungroup() %>%
+  rename(gen = meta_gen)
+
+ggplot(pokemon_type_usage, aes(x = factor(gen), y = type_name, fill = usage_share)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = ifelse(usage_share >= 0.03,
+                               scales::percent(usage_share, accuracy = 1), ""),
+                color = usage_share > 0.5 * max(usage_share)),
+            size = 2.5, show.legend = FALSE) +
+  scale_color_manual(values = c("TRUE" = "white", "FALSE" = "black")) +
+  scale_fill_viridis_c(option = "magma", direction = -1,
+                       labels = scales::percent, name = "Part d'usage") +
+  labs(
+    title = "Types de Pokémon les plus utilisés selon la génération",
+    x = "Génération du méta",
+    y = "Type de Pokémon",
+  ) +
+  theme_pokemon
+```
+Il ne semble pas y avoir de corrélation pour tous les types (les Pokémons les plus utilisés n'ont pas forcément les types d'attaques les plus représentés). Cela s'explique à la fois par la présence de doubles types, dont l'un des deux peut être utilisé pour le STAB et l'autre non, mais aussi par le choix souvent fait de donner à son équipe des attaques de types différents, permettant d'offrir une meilleure couverture offensive. 
+
+Pour finir cette analyse, on peut tenter de déterminer quels types semblent être plus utilisés offensivement (plus d'attaques que de Pokémons) et lesquels seraient plutôt défensifs (plus de Pokémons que d'attaques). Cette analyse sera réalisée sur l'ensemble des générations pour avoir le plus de valeurs possibles.
+
+
+```{r comparaison}
+type_comparison <- pokemon_type_usage %>%
+  select(gen, type_name, pokemon_share = usage_share) %>%
+  inner_join(
+    moves_type_usage %>% select(gen, type_name, move_share = usage_share),
+    by = c("gen", "type_name")
+  )
+
+type_comparison_overall <- type_comparison %>%
+  group_by(type_name) %>%
+  summarise(
+    pokemon_share = mean(pokemon_share),
+    move_share    = mean(move_share),
+    .groups = "drop"
+  )
+
+ggplot(type_comparison_overall, aes(x = pokemon_share, y = move_share)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  geom_point(aes(color = type_name), size = 3) +
+  ggrepel::geom_text_repel(aes(label = type_name, color = type_name),
+                           size = 3, show.legend = FALSE) +
+  scale_color_manual(values = palette_types, name = "Type") +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Corrélation entre types de Pokémon et types d'attaque",
+    x = "Part d'usage comme type de Pokémon",
+    y = "Part d'usage comme type d'attaque",
+  ) +
+  theme_pokemon
+
+```
+On remarque ainsi que certains types semblent bel et bien être utilisés de chaque manière. Cette analyse est intéressante, mais nous étudierons plus en détail les performances de chaque type plus tard. On peut toujours noter l'anomalie qu'est le type normal, qui s'explique de la même manière que pour la première visualisation. 

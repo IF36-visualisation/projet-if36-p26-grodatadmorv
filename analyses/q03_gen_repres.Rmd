@@ -38,16 +38,10 @@ ggplot(smogon_gen_distrib_usage, aes(x = factor(meta_gen), y = usage_total, fill
   labs(
     x = "Génération du méta",
     y = "Répartition de l'usage",
+    title = "Poids des générations de Pokémon dans chaque métagame",
+    subtitle = "Part de l'usage compétitif occupée par les Pokémon de chaque génération",
   ) +
   theme_pokemon
 
-# smogon_gen_distrib %>%
-#   filter(is.na(generation_id)) %>%
-#   distinct(pokemon)
-# 
-# pokeapi %>% 
-#   filter(str_detect(species_name, "mime|farfetch")) %>% 
-#   select(species_name, generation_id)
-
 ```
-
+L'analyse des premières générations est assez simple. On note évidemment qu'à la première génération, 100% des usages étaient de cette même génération. les 2 suivantes ajoutant moins de Pokémons, les puissants des précédentes gardent une place importante. La 6e génération marque l'arrivée des Méga-évolutions, une forme plus puissante accordée à certains Pokémons, dont beaucoup sont de la 1ère génération. Enfin, la neuvième ajoute les Paradoxes, qui sont très puissants et prennent donc une grande part de l'usage (Par exemple, le plus utilisé de cette génération est Fort-Ivoire).
