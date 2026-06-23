@@ -93,6 +93,9 @@ Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toute
 \newpage
 ```{r child_q11, child = 'analyses/q11_avantages_types.Rmd'}
 ```
+\newpage
+```{r child_q12, child = 'analyses/q12_nouveau_talents_et_attaques.Rmd'}
+```
 
 \newpage
 
