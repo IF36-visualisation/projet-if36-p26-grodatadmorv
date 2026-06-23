@@ -14,11 +14,13 @@ Ensuite, nous ferons un état des choses tels quels étaient en 1ere génératio
 ### Graphique n°1: ratio de résistance et faiblesse de chaque type: 
 
 ```{r}
+# Création du tibble contenant toute les résistances
 type_resistances <- type_efficacy %>% filter(damage_factor==50 | damage_factor==0) %>% select(target_type_id, damage_factor) %>% count(target_type_id) %>% arrange(target_type_id)
+# Création du tibble contenant toute les faiblesses
 type_weaknesses <- type_efficacy %>% filter(damage_factor==200) %>% select(target_type_id, damage_factor) %>% count(target_type_id)
-#type_ratio <- round(type_resistances[2]/type_weaknesses[2])
+# Création du tibble résistance/faiblesse
 type_ratio <- type_weaknesses %>% mutate(target_type_id, n = round(type_resistances[2]/type_weaknesses[2], 3)) %>% arrange(target_type_id) %>% left_join(type_names_en %>% rename(type_name = type_name), by = c("target_type_id" = "type_id")) %>% select(type_name, n)
-
+#création de la visu
 ggplot(type_ratio, aes(x = reorder(type_name, -n$n), y = n$n)) +
   geom_col(fill = "#735797", width = 0.6) +
   geom_text(aes(label = n$n), vjust = -0.3, size = 3.5, fontface = "bold") +
@@ -33,11 +35,13 @@ ggplot(type_ratio, aes(x = reorder(type_name, -n$n), y = n$n)) +
 ### Graphique n°2: efficacité de couverture offensive de chaque type (super efficace sur combien de type et résisté par combien de types):
 
 ```{r}
+# Création du tibble contenant tout les types qui sont résistés par un autre type
 type_inefficacy <- type_efficacy %>% filter(damage_factor==50 | damage_factor==0) %>% select(damage_type_id, damage_factor) %>% count(damage_type_id) %>% arrange(damage_type_id)
+# Création du tibble contenant tout les types qui sont super efficaces sur un autre type
 type_super_efficacy <- type_efficacy %>% filter(damage_factor==200) %>% select(damage_type_id, damage_factor) %>% count(damage_type_id)  %>% add_row(damage_type_id = 1, n = 0) %>% arrange(damage_type_id)
-#type_ratio <- round(type_resistances[2]/type_weaknesses[2])
+# Création du tibble super_efficace/résisté
 type_coverage <- type_inefficacy %>% mutate(damage_type_id, n = round(type_super_efficacy[2]/type_inefficacy[2], 3)) %>% arrange(damage_type_id) %>% left_join(type_names_en %>% rename(type_name = type_name), by = c("damage_type_id" = "type_id")) %>% select(type_name, n)
-
+# Création de la visu
 ggplot(type_coverage, aes(x = reorder(type_name, -n$n), y = n$n)) +
   geom_col(fill = "#E8334A", width = 0.6) +
   geom_text(aes(label = n$n), vjust = -0.3, size = 3.5, fontface = "bold") +
@@ -56,11 +60,13 @@ Cependant, ces dataviz ne présente pas tout. Certains types comme le type spect
 ### Graphique n°3: ratio de résistance et faiblesse de chaque type en 1ère génération: 
 
 ```{r}
+# Création du tibble contenant toute les résistances
 type_resistances <- type_efficacy_past %>% filter(damage_factor==50 | damage_factor==0) %>% select(target_type_id, damage_factor) %>% count(target_type_id) %>% arrange(target_type_id)
+# Création du tibble contenant toute les faiblesses
 type_weaknesses <- type_efficacy_past %>% filter(damage_factor==200) %>% select(target_type_id, damage_factor) %>% count(target_type_id)
-#type_ratio <- round(type_resistances[2]/type_weaknesses[2])
+# Création du tibble résistance/faiblesse
 type_ratio <- type_weaknesses %>% mutate(target_type_id, n = round(type_resistances[2]/type_weaknesses[2], 3)) %>% arrange(target_type_id) %>% left_join(type_names_en %>% rename(type_name = type_name), by = c("target_type_id" = "type_id")) %>% select(type_name, n) %>% arrange(n)
-
+#création de la visu
 ggplot(type_ratio, aes(x = reorder(type_name, -n$n), y = n$n)) +
   geom_col(fill = "#6495ED", width = 0.6) +
   geom_text(aes(label = n$n), vjust = -0.3, size = 3.5, fontface = "bold") +
@@ -72,14 +78,17 @@ ggplot(type_ratio, aes(x = reorder(type_name, -n$n), y = n$n)) +
   theme_pokemon
 
 ```
+
 ### Graphique n°4: efficacité de couverture offensive de chaque type (super efficace sur combien de type et résisté par combien de types):
 
 ```{r}
+# Création du tibble contenant tout les types qui sont résistés par un autre type
 type_inefficacy <- type_efficacy_past %>% filter(damage_factor==50 | damage_factor==0) %>% select(damage_type_id, damage_factor) %>% count(damage_type_id)%>% add_row(damage_type_id = 16, n = 0) %>% arrange(damage_type_id)
+# Création du tibble contenant tout les types qui sont super efficaces sur un autre type
 type_super_efficacy <- type_efficacy_past %>% filter(damage_factor==200) %>% select(damage_type_id, damage_factor) %>% count(damage_type_id)  %>% add_row(damage_type_id = 1, n = 0)  %>% arrange(damage_type_id)
-#type_ratio <- round(type_resistances[2]/type_weaknesses[2])
+# Création du tibble super_efficace/résisté
 type_coverage <- type_inefficacy %>% mutate(damage_type_id, n = round(type_super_efficacy[2]/type_inefficacy[2], 3)) %>% arrange(damage_type_id) %>% left_join(type_names_en %>% rename(type_name = type_name), by = c("damage_type_id" = "type_id")) %>% select(type_name, n)
-
+# Création de la visu
 ggplot(type_coverage, aes(x = reorder(type_name, -n$n), y = n$n)) +
   geom_col(fill = "#E8334A", width = 0.6) +
   geom_text(aes(label = n$n), vjust = -0.3, size = 3.5, fontface = "bold") +
@@ -91,5 +100,8 @@ ggplot(type_coverage, aes(x = reorder(type_name, -n$n), y = n$n)) +
   theme_pokemon
 
 ```
-
+En première génération, la table des types est très différentes. De nombreux types rajouté après coup pour équilibrer les relations entre les types n'existent pas encore, comme le type acier ou le type ténèbre. De ce fait, certains types sont bien meilleurs que d'autre. 
+Avec ces graphiques, on peut voir que le type glace est en première génération un mauvais type, qui n'a presque aucune résistance et très peu de couverture offenssive. On peu également noter que le type dragon n'est résisté par aucun type en première génération, ce qui le rend très bon offensivement, malheurement peu d'attaque de type dragon existe et il n'y a qu'une seule famille de type dragon, la famille de Dracolosse qui n'est pas très bonne en 1g.
+Dans les types les plus forts, le type Psy est probablement le meilleur type du jeu, car il n'a que très peu de faiblesse et a une bonne couverture offensive. De plus, les types super efficaces sur le type psy n'ont pas vraiment d'attaque, comme le type insecte qui n'a pas de bonne attaque et dont les pokemons sont très mauvais, ou le type spectre qui n'a qu'une seule attaque très mauvaise.
+Cependant, le type spectre reste très fort, car il est très bon défensivement, et donc il suffit d'avoir une ou deux bonnes attaque d'un autre type pour être un bon pokemon de type spectre. On peu donc s'attendre à ce que Ectoplasma, le seul pokemon de type spectre en 1g, soit très fort.
 
