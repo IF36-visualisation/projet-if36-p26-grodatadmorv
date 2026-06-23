@@ -1,9 +1,4 @@
----
-title: "q11_avantages_types"
-output: html_document
----
-
-## Certains types ont-ils un avantage offensif/défensif intrinsèque dans le tableau des faiblesses/résistances (couverture, immunités) ?
+## Question 11 : Certains types ont-ils un avantage offensif/défensif intrinsèque dans le tableau des faiblesses/résistances (couverture, immunités) ?
 
 Tout les types ne sont pas crées égaux. Certains ne dispose que de peu de résistance par rapport à leur nombre de faiblesse, tandis que d'autre dispose de nombreuse résistance mais ne sont pas très fort offensivement.
 Quels types sont les plus avantagés sur le plan défensif et offensif ?

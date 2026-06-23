@@ -1,0 +1,43 @@
+## Question 12 : Les nouvelles générations introduisent-elles beaucoup plus d'attaque et de talent uniques que les anciennes ? (`moves.csv`, `abilities.csv`)
+
+Dans les nouvelles générations, il est courant que les pokemon introduits aient des talents ou des attaques uniques, pour les différencier des pokemon existant. On a donc tendance à penser que plus les générations avances, plus pokemon introduit de nouvelles attaques et de nouveaux talents. Dans cette question, nous allons essayer de vérifier cette intuition.
+
+## Graphique n°1: nombre de talents introduits au cours des générations.
+
+```{r}
+# réccupération des talents par génération
+ability_pergen <- pokemon_ability %>% filter(is_main_series==1) %>% count(generation_id)
+
+# affichage du graph du nombre de talent par génération
+ggplot(ability_pergen, aes(x = generation_id, y = n)) +
+  geom_col(fill = "#32CD32", width = 0.6) +
+  geom_text(aes(label = n), vjust = -0.3, size = 3.5, fontface = "bold") +
+  labs(
+    title    = "Nombre de talent introduit chaque génération",
+    subtitle = "Chaque barre = nombre de talents introduit dans la génération",
+    x = "genération", y = "Nombre de talents introduits"
+  ) +
+  theme_pokemon
+```
+Dans ce graphique, on peut voir que la 3eme génération est la génération introduisant le plus de type et de loin. C'est assez normal, puisque c'est la génération qui introduit le principe de talent. A part la 3eme génération, il est difficile d'identifier une tendance, puisque la plupart des génération introduisent une quarantaine de talent. La seule exception est la 6ème génération, qui n'ajoute que très peu de nouveaux talents. Cette disparité peu peut-être s'expliquer par l'introduction des méga-évolutions, qui réutilise souvent des anciens talents ou se partage des talents entre-elles (par exemple le talent peau céleste a été crée pour les méga-évolutions, mais est donné à plusieurs méga-évolutions.)
+
+## Graphique n°2: nombre d'attaques introduites au cours des générations.
+
+```{r}
+# réccupération des attaques par génération
+moves_pergen <- pokemon_moves %>% filter(id<=10000) %>% count(generation_id)
+
+# affichage du graph du nombre d'attaques par génération
+ggplot(moves_pergen, aes(x = generation_id, y = n)) +
+  geom_col(fill = "#32CD32", width = 0.6) +
+  geom_text(aes(label = n), vjust = -0.3, size = 3.5, fontface = "bold") +
+  labs(
+    title    = "Nombre de talent introduit chaque génération",
+    subtitle = "Chaque barre = nombre de talents introduit dans la génération",
+    x = "genération", y = "Nombre de talents introduits"
+  ) +
+  theme_pokemon
+```
+Dans ce second graph on peut noter que la première générations est celle qui a introduit le plus d'attaque, ce qui semble logique car c'est le premier jeu de la série. On ne peu pas remarquer de tendance précise, car la plupart des génération tourne autour des 100 attaques introduites. La 6eme génération n'introduit que peu d'attaque, ce qui peu peut-être s'expliquer par l'introduction des méga-évolutions, qui garde les mêmes attaques que le pokemon qui méga-évolue. La 7ème génération introduit beaucoup d'attaque, à cause des attaques Z, qui est la méchanique de génération. 
+Enfin, surprenamment, la 9ème génération n'introduit que très peu de nouvelles attaques, ce qui va à l'inverse de notre intuition originale.
+Cependant, ici on ne regarde pas la distribution de ces attaques. On pourrait vouloir savoir si les attaques introduites sont distribuées à beaucoup de pokemon, ou uniquement aux nouveaux pokemon, ce qui avantagerait les nouveaux pokemon. 
